@@ -1,6 +1,8 @@
 package com.distribuciones.omega.model;
 
 import java.util.Date;
+import java.util.List;
+import java.util.ArrayList;
 
 
 public class Factura {
@@ -9,6 +11,7 @@ public class Factura {
     private Empleado empleado;
     private String telefono;
     private String direccion;
+    private List<DetalleFactura> detallesFactura= new ArrayList<>(); // Cambiado a ArrayList para evitar NullPointerException
 
     public Factura(String idFactura, Date fechaEmision, Empleado empleado, String telefono, String direccion) {
         this.idFactura = idFactura;
@@ -60,7 +63,14 @@ public class Factura {
     }
 
     public double calcularTotal() {
+        double total = 0.0;
+        for (DetalleFactura detalle : detallesFactura) {
+            total += detalle.getValor(); 
+        }
+        return total;
+    }
 
-        return 0.0;
+    public void agregarDetalle(DetalleFactura detalle) {
+        detallesFactura.add(detalle);
     }
 }

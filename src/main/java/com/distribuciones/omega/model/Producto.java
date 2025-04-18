@@ -1,7 +1,5 @@
 package com.distribuciones.omega.model;
 
-
-
 public class Producto {
 
     private String nombre;
