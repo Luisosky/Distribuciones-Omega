@@ -35,13 +35,6 @@ public class ClientesController {
             String dbUser = System.getenv("DB_USER");
             String dbPass = System.getenv("DB_PASS");
             
-            // Si no se pueden obtener del entorno, usar los valores del archivo .env
-            if (dbUrl == null || dbUser == null || dbPass == null) {
-                dbUrl = "jdbc:mysql://127.0.0.1:3306/omega?useSSL=false&serverTimezone=UTC";
-                dbUser = "root";
-                dbPass = "root";
-            }
-            
             // Registrar el driver explícitamente
             Class.forName("com.mysql.cj.jdbc.Driver");
             
