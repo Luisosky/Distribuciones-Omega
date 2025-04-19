@@ -5,11 +5,16 @@ import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import com.distribuciones.omega.utils.AlertUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -42,6 +47,9 @@ public class DashboardController {
     @FXML private Button btnCotizacionCollapsed;
     @FXML private Button btnVentasCollapsed;
     @FXML private Button btnReportesCollapsed;
+
+    @FXML private MenuItem menuConfiguracionAlertas;
+    @FXML private Button btnConfiguracionAlertas;
 
     private boolean menuLocked = false;
     private boolean menuExpanded = false;
@@ -119,6 +127,18 @@ public class DashboardController {
         btnCotizacionCollapsed.setOnAction(e -> loadView("cotizacion.fxml"));
         btnVentasCollapsed.setOnAction(e -> loadView("ventas-gestion.fxml"));
         btnReportesCollapsed.setOnAction(e -> loadView("reportes-gestion.fxml"));
+
+        // Configurar acción para el menú de configuración de alertas
+        if (menuConfiguracionAlertas != null) {
+            menuConfiguracionAlertas.setOnAction(e -> mostrarConfiguracionAlertas());
+        } else {
+            System.err.println("Advertencia: menuConfiguracionAlertas no encontrado en el FXML");
+        }
+
+        // Configurar acción para el botón de configuración de alertas
+        if (btnConfiguracionAlertas != null) {
+            btnConfiguracionAlertas.setOnAction(e -> mostrarConfiguracionAlertas());
+        }
 
         // Carga inicial de la vista de clientes
         loadView("clientes-gestion.fxml");
@@ -230,6 +250,26 @@ public class DashboardController {
             AnchorPane.setRightAnchor(view, 0.0);
         } catch (IOException ex) {
             ex.printStackTrace();
+        }
+    }
+    
+    /**
+     * Muestra la ventana de configuración de alertas
+     */
+    private void mostrarConfiguracionAlertas() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/configuracion-alertas.fxml"));
+            Parent root = loader.load();
+            
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Configuración de Alertas");
+            stage.setScene(new Scene(root));
+            stage.setResizable(false);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+            AlertUtils.mostrarError("Error", "No se pudo abrir la ventana de configuración: " + e.getMessage());
         }
     }
     

@@ -162,7 +162,7 @@ public class InventarioRepository {
      * @return true si la actualización fue exitosa
      */
     public boolean update(ProductoInventario producto) {
-        String sql = "UPDATE productos SET descripcion = ?, precio = ?, stock = ?, " +
+        String sql = "UPDATE productos SET descripcion = ?, precio = ?, cantidad = ?, " + // Cambié 'stock' por 'cantidad'
                      "numero_serie = ?, categoria = ?, proveedor = ?, activo = ? " +
                      "WHERE codigo = ?";
         
@@ -171,7 +171,7 @@ public class InventarioRepository {
             
             stmt.setString(1, producto.getDescripcion());
             stmt.setDouble(2, producto.getPrecio());
-            stmt.setInt(3, producto.getStock());
+            stmt.setInt(3, producto.getStock()); // Aquí stock se guarda en cantidad
             stmt.setString(4, producto.getNumeroSerie());
             stmt.setString(5, producto.getCategoria());
             stmt.setString(6, producto.getProveedor());
@@ -194,7 +194,7 @@ public class InventarioRepository {
      * @return true si la actualización fue exitosa
      */
     public boolean updateStock(String codigo, int nuevoStock) {
-        String sql = "UPDATE productos SET stock = ? WHERE codigo = ?";
+        String sql = "UPDATE productos SET cantidad = ? WHERE codigo = ?"; // Cambié 'stock' por 'cantidad'
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -216,7 +216,7 @@ public class InventarioRepository {
      * @param umbral Nivel mínimo de stock
      * @return Lista de productos con stock bajo
      */
-    public List<ProductoInventario> findByStockLessThan(int umbral) {
+    public List<ProductoInventario> findByStockLessThanActivo(int umbral) {
         List<ProductoInventario> productos = new ArrayList<>();
         String sql = "SELECT * FROM productos WHERE stock < ? AND activo = true";
         
@@ -339,5 +339,74 @@ public class InventarioRepository {
         } catch (SQLException e) {
             return false;
         }
+    }
+
+    /**
+     * Busca productos con stock menor que el umbral especificado
+     * @param umbral Nivel mínimo de stock
+     * @return Lista de productos con stock bajo
+     */
+    public List<ProductoInventario> findByStockLessThan(int umbral) {
+        List<ProductoInventario> productosBajoStock = new ArrayList<>();
+        
+        // Consulta simplificada que no depende de la relación con categorías
+        String sql = "SELECT * FROM productos WHERE cantidad < ?";
+        
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, umbral);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                productosBajoStock.add(mapResultSetToProductoSinCategoria(rs));
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return productosBajoStock;
+    }
+
+    /**
+     * Mapea un ResultSet a un objeto ProductoInventario sin cargar datos de categoría
+     */
+    private ProductoInventario mapResultSetToProductoSinCategoria(ResultSet rs) throws SQLException {
+        ProductoInventario producto = new ProductoInventario();
+        
+        // Modificar estas líneas para leer id como String
+        String id = rs.getString("id");
+        producto.setCodigo(id);
+        
+        // Opcionalmente, si realmente necesitas un ID numérico:
+        try {
+            producto.setIdProducto(Long.parseLong(id.replaceAll("[^0-9]", "")));
+        } catch (NumberFormatException e) {
+            // En caso de que no se pueda convertir, asignar un valor por defecto o usar otro campo
+            producto.setIdProducto(0L);
+        }
+        
+        producto.setDescripcion(rs.getString("nombre"));
+        producto.setPrecio(rs.getDouble("precio"));
+        
+        // Mapear correctamente la cantidad al stock
+        producto.setStock(rs.getInt("cantidad"));
+        
+        // Leer la categoría como String
+        producto.setCategoria(rs.getString("categoria"));
+        
+        // Comprobar y mapear otros campos disponibles
+        if (hasColumn(rs, "tipo_producto")) {
+            producto.setProveedor(rs.getString("tipo_producto"));
+        }
+        
+        if (hasColumn(rs, "activo")) {
+            producto.setActivo(rs.getBoolean("activo"));
+        } else {
+            producto.setActivo(true);
+        }
+        
+        return producto;
     }
 }

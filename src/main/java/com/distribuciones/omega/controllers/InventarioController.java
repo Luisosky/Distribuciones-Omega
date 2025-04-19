@@ -2,6 +2,8 @@ package com.distribuciones.omega.controllers;
 
 import com.distribuciones.omega.model.ProductoInventario;
 import com.distribuciones.omega.service.InventarioService;
+import com.distribuciones.omega.utils.AlertUtils;
+import com.distribuciones.omega.service.AlertaStockService;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -42,6 +44,7 @@ public class InventarioController {
     @FXML private Label lblFechaActualizacion;
     
     private InventarioService inventarioService;
+    private AlertaStockService alertaStockService = new AlertaStockService();
     private ObservableList<ProductoInventario> productosData;
     private FilteredList<ProductoInventario> productosFiltrados;
     private NumberFormat currencyFormatter;
@@ -65,6 +68,9 @@ public class InventarioController {
         
         // Mostrar fecha de actualización
         updateTimestamp();
+        
+        // Verificar stock bajo al iniciar
+        alertaStockService.verificarStockBajo();
     }
     
     /**
@@ -189,5 +195,19 @@ public class InventarioController {
         }
         
         return result.toString().trim();
+    }
+    
+    // Modificación del método que actualiza el inventario
+    private void actualizarInventario(ProductoInventario producto) {
+        // Código existente para actualizar
+        if (inventarioService.actualizarProducto(producto)) {
+            AlertUtils.mostrarInformacion("Éxito", "Producto actualizado correctamente");
+            loadInventario(); // Reemplazar cargarDatos() con loadInventario()
+            
+            // Verificar stock después de actualizar
+            alertaStockService.verificarProducto(producto);
+        } else {
+            AlertUtils.mostrarError("Error", "No se pudo actualizar el producto");
+        }
     }
 }

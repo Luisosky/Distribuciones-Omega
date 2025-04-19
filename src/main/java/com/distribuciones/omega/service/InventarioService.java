@@ -68,4 +68,13 @@ public class InventarioService {
     public List<ProductoInventario> obtenerProductosStockBajo(int umbral) {
         return inventarioRepository.findByStockLessThan(umbral);
     }
+    
+    /**
+     * Actualiza un producto en el inventario
+     * @param producto Producto con datos actualizados
+     * @return true si la actualización fue exitosa
+     */
+    public boolean actualizarProducto(ProductoInventario producto) {
+        return inventarioRepository.update(producto);
+    }
 }

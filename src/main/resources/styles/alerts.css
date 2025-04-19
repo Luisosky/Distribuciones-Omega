@@ -1,0 +1,60 @@
+/* Estilos para la ventana de alertas */
+
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-background-color: #f5f5f5;
+}
+
+.title-label {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4a90e2;
+    -fx-padding: 0 0 10px 0;
+}
+
+.button {
+    -fx-background-color: #f0f0f0;
+    -fx-text-fill: #333333;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 3px;
+    -fx-cursor: hand;
+    -fx-padding: 7px 15px;
+}
+
+.button:hover {
+    -fx-background-color: #e0e0e0;
+}
+
+.button:pressed {
+    -fx-background-color: #d0d0d0;
+}
+
+.button:default {
+    -fx-background-color: #4a90e2;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+}
+
+.button:default:hover {
+    -fx-background-color: #3a80d2;
+}
+
+.text-field, .spinner {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 3px;
+}
+
+.text-field:focused, .spinner:focused {
+    -fx-border-color: #4a90e2;
+}
+
+/* Estilos específicos para el spinner */
+.spinner .increment-arrow-button, .spinner .decrement-arrow-button {
+    -fx-background-color: #f0f0f0;
+    -fx-border-color: #cccccc;
+}
+
+.spinner .increment-arrow-button:hover, .spinner .decrement-arrow-button:hover {
+    -fx-background-color: #e0e0e0;
+}

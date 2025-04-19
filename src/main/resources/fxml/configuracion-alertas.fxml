@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="250.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/20" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.distribuciones.omega.controllers.ConfiguracionAlertasController">
+   <center>
+      <VBox spacing="15.0" BorderPane.alignment="CENTER">
+         <padding>
+            <Insets bottom="15.0" left="20.0" right="20.0" top="15.0" />
+         </padding>
+         <children>
+            <Label styleClass="title-label" text="Configuración de Alertas de Stock" />
+            
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+               <children>
+                  <Label prefWidth="150.0" text="Stock Mínimo:" />
+                  <Spinner fx:id="spnStockMinimo" prefWidth="150.0" />
+               </children>
+            </HBox>
+            
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+               <children>
+                  <Label prefWidth="150.0" text="Email Administrador:" />
+                  <TextField fx:id="txtEmailAdmin" prefWidth="200.0" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </center>
+   <bottom>
+      <HBox alignment="CENTER_RIGHT" spacing="10.0" BorderPane.alignment="CENTER">
+         <padding>
+            <Insets bottom="15.0" left="20.0" right="20.0" top="15.0" />
+         </padding>
+         <children>
+            <Button fx:id="btnCancelar" mnemonicParsing="false" text="Cancelar" />
+            <Button fx:id="btnGuardar" defaultButton="true" mnemonicParsing="false" text="Guardar" />
+         </children>
+      </HBox>
+   </bottom>
+</BorderPane>

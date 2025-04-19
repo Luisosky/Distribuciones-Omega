@@ -4,6 +4,9 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.paint.Color?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuItem?>
 
 <BorderPane xmlns="http://javafx.com/javafx/20"
             xmlns:fx="http://javafx.com/fxml/1"
@@ -12,17 +15,40 @@
 
     <!-- Header mejorado -->
     <top>
-        <HBox style="-fx-background-color: #4a90e2;" alignment="CENTER_LEFT" spacing="15">
-            <padding><Insets top="15" right="20" bottom="15" left="20"/></padding>
-            <Label text="Distribuciones Ómega" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
-            <Region HBox.hgrow="ALWAYS" />
-            <Label fx:id="lblCurrentDateTime" style="-fx-text-fill: white;" text="2025-04-19 03:57:56" />
-            <Label style="-fx-text-fill: white;" text="|" />
-            <Label fx:id="lblUsername" style="-fx-text-fill: white;" text="Luisosky" />
-            <effect>
-                <DropShadow />
-            </effect>
-        </HBox>
+        <VBox>
+            <MenuBar>
+                <menus>
+                    <Menu text="Archivo">
+                        <items>
+                            <MenuItem text="Cerrar Sesión"/>
+                            <MenuItem text="Salir"/>
+                        </items>
+                    </Menu>
+                    <Menu text="Configuración">
+                        <items>
+                            <MenuItem fx:id="menuConfiguracionAlertas" text="Configuración de Alertas"/>
+                            <MenuItem text="Preferencias"/>
+                        </items>
+                    </Menu>
+                    <Menu text="Ayuda">
+                        <items>
+                            <MenuItem text="Acerca de"/>
+                        </items>
+                    </Menu>
+                </menus>
+            </MenuBar>
+            <HBox style="-fx-background-color: #4a90e2;" alignment="CENTER_LEFT" spacing="15">
+                <padding><Insets top="15" right="20" bottom="15" left="20"/></padding>
+                <Label text="Distribuciones Ómega" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS" />
+                <Label fx:id="lblCurrentDateTime" style="-fx-text-fill: white;" text="2025-04-19 03:57:56" />
+                <Label style="-fx-text-fill: white;" text="|" />
+                <Label fx:id="lblUsername" style="-fx-text-fill: white;" text="Luisosky" />
+                <effect>
+                    <DropShadow />
+                </effect>
+            </HBox>
+        </VBox>
     </top>
 
     <!-- Menú lateral con efecto de expansión/contracción -->
@@ -152,6 +178,15 @@
                         <HBox spacing="15" alignment="CENTER_LEFT">
                             <Label text="📊" style="-fx-text-fill: white; -fx-font-size: 18px;"/>
                             <Label text="Reportes" style="-fx-text-fill: white;"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                
+                <Button fx:id="btnConfiguracionAlertas" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-alignment: CENTER_LEFT; -fx-font-size: 14px;">
+                    <graphic>
+                        <HBox spacing="15" alignment="CENTER_LEFT">
+                            <Label text="⚠️" style="-fx-text-fill: white; -fx-font-size: 18px;"/>
+                            <Label text="Configuración de Alertas" style="-fx-text-fill: white;"/>
                         </HBox>
                     </graphic>
                 </Button>

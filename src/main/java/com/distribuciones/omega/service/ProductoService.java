@@ -1,10 +1,12 @@
 package com.distribuciones.omega.service;
 
 import com.distribuciones.omega.model.Producto;
+import com.distribuciones.omega.model.ProductoInventario;
 import com.distribuciones.omega.model.Categoria;
 import com.distribuciones.omega.repository.ProductoRepository;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Servicio para la gestión de productos
@@ -93,5 +95,27 @@ public class ProductoService {
      */
     public void initializeDatabase() {
         repository.createTableIfNotExists();
+    }
+
+    /**
+     * Obtiene todos los productos del inventario
+     * @return Lista de productos con información de inventario
+     */
+    public List<ProductoInventario> obtenerTodosProductos() {
+        // Necesitamos un InventarioRepository para obtener productos del inventario
+        InventarioService inventarioService = new InventarioService();
+        return inventarioService.obtenerProductosDisponibles();
+    }
+
+    /**
+     * Obtiene productos con stock por debajo del mínimo especificado
+     * @param stockMinimo Nivel mínimo de stock
+     * @return Lista de productos con stock bajo
+     */
+    public List<ProductoInventario> obtenerProductosStockBajo(int stockMinimo) {
+        List<ProductoInventario> todosProductos = obtenerTodosProductos();
+        return todosProductos.stream()
+                .filter(p -> p.getStock() < stockMinimo)
+                .collect(Collectors.toList());
     }
 }
