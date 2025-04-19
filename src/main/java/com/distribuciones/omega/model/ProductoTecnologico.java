@@ -9,7 +9,7 @@ public class ProductoTecnologico extends Producto{
     private String especificacionesTecnicas;
 
     public ProductoTecnologico(String nombre, String id, double precio, int cantidad, String marca, String modelo, String numeroSerie, int garantiaMeses, String especificacionesTecnicas) {
-        super(nombre, id, precio, cantidad);
+        super(nombre, id, precio, cantidad, Categoria.PRODUCTO_TECNOLOGICO);
         this.marca = marca;
         this.modelo = modelo;
         this.numeroSerie = numeroSerie;

@@ -36,6 +36,12 @@ public class Cliente {
     public void setEmailString(String emailString) {
         this.emailString = emailString;
     }
+    public String getEmail() {
+        return emailString;
+    }
+    public void setEmail(String email) {
+        this.emailString = email;
+    }
     public String getTelefono() {
         return telefono;
     }

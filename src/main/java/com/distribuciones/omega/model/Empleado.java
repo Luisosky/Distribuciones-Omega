@@ -55,10 +55,10 @@ public class Empleado {
     public void setTelefono(String telefono) {
         this.telefono = telefono;
     }
-    public String getEmailString() {
+    public String getEmail() {
         return emailString;
     }
-    public void setEmailString(String emailString) {
+    public void setEmail(String emailString) {
         this.emailString = emailString;
     }
     public Double getSalario() {

@@ -6,7 +6,7 @@ public class InsumoOficina extends Producto {
     private int cantidadPorPaquete;
 
     public InsumoOficina(String nombre, String id, double precio, int cantidad, String presentacion, String tipoPapel, int cantidadPorPaquete) {
-        super(nombre, id, precio, cantidad);
+        super(nombre, id, precio, cantidad, Categoria.INSUMO_OFICINA);
         this.presentacion = presentacion;
         this.tipoPapel = tipoPapel;
         this.cantidadPorPaquete = cantidadPorPaquete;

@@ -7,7 +7,7 @@ public class ProductoMobilario extends Producto {
     private String dimensiones;
 
     public ProductoMobilario(String nombre, String id, double precio, int cantidad, String tipoMobilario, String material, String color, String dimensiones) {
-        super(nombre, id, precio, cantidad);
+        super(nombre, id, precio, cantidad, Categoria.PRODUCTO_MOBILIARIO);
         this.tipoMobilario = tipoMobilario;
         this.material = material;
         this.color = color;
