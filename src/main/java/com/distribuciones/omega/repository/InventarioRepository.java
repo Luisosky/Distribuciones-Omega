@@ -12,6 +12,34 @@ import java.util.List;
  */
 public class InventarioRepository {
 
+
+    /**
+     * Crea la tabla de inventario si no existe
+     */
+    public void createTableIfNotExists() {
+        String sql = "CREATE TABLE IF NOT EXISTS inventario (" +
+                    "id_inventario BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                    "producto_id VARCHAR(20) NOT NULL, " +
+                    "stock INT NOT NULL DEFAULT 0, " +
+                    "ubicacion VARCHAR(100), " +
+                    "ultimo_reabastecimiento DATETIME, " +
+                    "stock_minimo INT DEFAULT 5, " +
+                    "stock_maximo INT DEFAULT 100, " +
+                    "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
+                    ")";
+        
+        try (Connection conn = DBUtil.getConnection();
+            Statement stmt = conn.createStatement()) {
+            
+            stmt.executeUpdate(sql);
+            System.out.println("Tabla de inventario creada o verificada correctamente");
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error al crear la tabla de inventario: " + e.getMessage());
+        }
+    }
+
     /**
      * Obtiene todos los productos del inventario
      * @return Lista de productos en inventario
@@ -240,15 +268,76 @@ public class InventarioRepository {
      */
     private ProductoInventario mapResultSetToProducto(ResultSet rs) throws SQLException {
         ProductoInventario producto = new ProductoInventario();
-        producto.setIdProducto(rs.getLong("id_producto"));
-        producto.setCodigo(rs.getString("codigo"));
-        producto.setDescripcion(rs.getString("descripcion"));
-        producto.setPrecio(rs.getDouble("precio"));
-        producto.setStock(rs.getInt("stock"));
-        producto.setNumeroSerie(rs.getString("numero_serie"));
-        producto.setCategoria(rs.getString("categoria"));
-        producto.setProveedor(rs.getString("proveedor"));
-        producto.setActivo(rs.getBoolean("activo"));
+        
+        // Mapear desde la tabla productos
+        if (hasColumn(rs, "id")) {
+            String id = rs.getString("id");
+            producto.setCodigo(id);
+            // Usar el ID del producto como clave primaria para búsquedas futuras
+            try {
+                producto.setIdProducto(Long.parseLong(id));
+            } catch (NumberFormatException e) {
+                producto.setIdProducto(0L);
+            }
+        }
+        
+        if (hasColumn(rs, "nombre")) {
+            producto.setDescripcion(rs.getString("nombre"));
+        }
+        
+        if (hasColumn(rs, "precio")) {
+            producto.setPrecio(rs.getDouble("precio"));
+        }
+        
+        if (hasColumn(rs, "cantidad")) {
+            producto.setStock(rs.getInt("cantidad"));
+        } else if (hasColumn(rs, "stock")) {
+            producto.setStock(rs.getInt("stock"));
+        }
+        
+        if (hasColumn(rs, "categoria")) {
+            producto.setCategoria(rs.getString("categoria"));
+        }
+        
+        if (hasColumn(rs, "tipo_producto")) {
+            producto.setProveedor(rs.getString("tipo_producto"));
+        }
+        
+        if (hasColumn(rs, "activo")) {
+            producto.setActivo(rs.getBoolean("activo"));
+        } else {
+            producto.setActivo(true);
+        }
+        
+        // Datos específicos de inventario (si están presentes)
+        if (hasColumn(rs, "ubicacion")) {
+            producto.setUbicacion(rs.getString("ubicacion"));
+        }
+        
+        if (hasColumn(rs, "stock_minimo")) {
+            producto.setStockMinimo(rs.getInt("stock_minimo"));
+        } else {
+            producto.setStockMinimo(5); // Valor predeterminado
+        }
+        
+        if (hasColumn(rs, "stock_maximo")) {
+            producto.setStockMaximo(rs.getInt("stock_maximo"));
+        } else {
+            producto.setStockMaximo(100); // Valor predeterminado
+        }
+        
         return producto;
+    }
+
+    /**
+     * Verifica si un ResultSet tiene una columna específica
+     */
+    private boolean hasColumn(ResultSet rs, String columnName) {
+        try {
+            rs.findColumn(columnName);
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 }

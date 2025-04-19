@@ -182,6 +182,7 @@ public class DatabaseInitializer {
         try {
             ProductoRepository repository = new ProductoRepository();
             repository.createTableIfNotExists();
+            verifyProductosTable();
             LOGGER.info("Tablas de productos creadas exitosamente");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al crear las tablas de productos", e);

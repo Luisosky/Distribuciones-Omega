@@ -1,5 +1,7 @@
 package com.distribuciones.omega.model;
 
+import java.util.Date;
+
 public class ProductoInventario {
     private Long idProducto;
     private String codigo;
@@ -10,6 +12,10 @@ public class ProductoInventario {
     private String categoria;
     private String proveedor;
     private boolean activo = true;
+    private String ubicacion;
+    private int stockMinimo;
+    private int stockMaximo;
+    private Date ultimoReabastecimiento;
     
     public ProductoInventario() {
         // Constructor vacío necesario para frameworks
@@ -107,6 +113,38 @@ public class ProductoInventario {
     
     public void setActivo(boolean activo) {
         this.activo = activo;
+    }
+
+    public String getUbicacion() {
+        return ubicacion;
+    }
+    
+    public void setUbicacion(String ubicacion) {
+        this.ubicacion = ubicacion;
+    }
+    
+    public int getStockMinimo() {
+        return stockMinimo;
+    }
+    
+    public void setStockMinimo(int stockMinimo) {
+        this.stockMinimo = stockMinimo;
+    }
+    
+    public int getStockMaximo() {
+        return stockMaximo;
+    }
+    
+    public void setStockMaximo(int stockMaximo) {
+        this.stockMaximo = stockMaximo;
+    }
+    
+    public Date getUltimoReabastecimiento() {
+        return ultimoReabastecimiento;
+    }
+    
+    public void setUltimoReabastecimiento(Date ultimoReabastecimiento) {
+        this.ultimoReabastecimiento = ultimoReabastecimiento;
     }
     
     @Override
