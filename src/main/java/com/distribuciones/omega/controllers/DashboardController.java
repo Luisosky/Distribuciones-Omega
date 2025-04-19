@@ -1,5 +1,6 @@
 package com.distribuciones.omega.controllers;
 
+import com.distribuciones.omega.model.Usuario;
 import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -45,11 +46,54 @@ public class DashboardController {
     private boolean menuLocked = false;
     private boolean menuExpanded = false;
     private Timer clockTimer;
+    private Usuario usuarioActual;
 
+    // Método existente para compatibilidad
     public void setUsername(String username) {
         if (username != null && !username.isEmpty()) {
             lblUsername.setText(username);
         }
+    }
+    
+    /**
+     * Establece el usuario actual y actualiza la interfaz
+     * @param usuario Usuario autenticado
+     */
+    public void setUsuario(Usuario usuario) {
+        this.usuarioActual = usuario;
+        
+        if (usuario != null) {
+            // Mostrar el nombre del usuario en la etiqueta
+            lblUsername.setText(usuario.getNombre());
+            
+            // Configurar permisos según el rol del usuario
+            configurarPermisosSegunRol(usuario.getRol());
+        }
+    }
+    
+    /**
+     * Configura la visibilidad de elementos según el rol del usuario
+     * @param rol Rol del usuario autenticado
+     */
+    private void configurarPermisosSegunRol(String rol) {
+        // Ejemplo de implementación según roles
+        boolean esAdmin = "ADMIN".equalsIgnoreCase(rol);
+        
+        // Los botones de reportes solo son visibles para administradores
+        btnReportes.setVisible(esAdmin);
+        btnReportes.setManaged(esAdmin);
+        btnReportesCollapsed.setVisible(esAdmin);
+        btnReportesCollapsed.setManaged(esAdmin);
+        
+        // Aquí puedes añadir más configuraciones según los roles
+    }
+    
+    /**
+     * Devuelve el usuario actualmente autenticado
+     * @return Usuario actual o null si no hay usuario
+     */
+    public Usuario getUsuarioActual() {
+        return usuarioActual;
     }
 
     @FXML

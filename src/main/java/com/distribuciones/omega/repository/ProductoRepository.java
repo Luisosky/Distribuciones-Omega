@@ -168,65 +168,105 @@ public class ProductoRepository {
      * @return true si la actualización fue exitosa
      */
     public boolean update(Producto producto) {
-        try (Connection conn = DBUtil.getConnection()) {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            DBUtil.beginTransaction(conn);
+            
             // Verificar que existe
             if (findById(producto.getId()) == null) {
                 return false;
             }
             
-            // Preparar SQL según el tipo de producto
-            StringBuilder sql = new StringBuilder(
-                "UPDATE productos SET nombre = ?, precio = ?, cantidad = ?, categoria = ?");
+            // 1. Actualizar tabla principal
+            String sqlProducto = "UPDATE productos SET nombre = ?, precio = ?, cantidad = ?, categoria = ? " +
+                                 "WHERE id = ?";
             
-            // Añadir columnas específicas según el tipo
-            if (producto instanceof InsumoOficina) {
-                sql.append(", presentacion = ?, tipo_papel = ?, cantidad_por_paquete = ?");
-            } else if (producto instanceof ProductoMobilario) {
-                sql.append(", tipo_mobiliario = ?, material = ?, color = ?, dimensiones = ?");
-            } else if (producto instanceof ProductoTecnologico) {
-                sql.append(", marca = ?, modelo = ?, numero_serie = ?, garantia_meses = ?, especificaciones_tecnicas = ?");
-            }
-            
-            sql.append(" WHERE id = ?");
-            
-            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
-                // Parámetros comunes
+            try (PreparedStatement stmt = conn.prepareStatement(sqlProducto)) {
                 stmt.setString(1, producto.getNombre());
                 stmt.setDouble(2, producto.getPrecio());
                 stmt.setInt(3, producto.getCantidad());
                 stmt.setString(4, producto.getCategoria().name());
+                stmt.setString(5, producto.getId());
+                stmt.executeUpdate();
+            }
+            
+            // 2. Actualizar tabla específica según tipo
+            if (producto instanceof InsumoOficina) {
+                InsumoOficina insumo = (InsumoOficina) producto;
                 
-                int index = 5;
-                
-                // Parámetros específicos según el tipo
-                if (producto instanceof InsumoOficina) {
-                    InsumoOficina insumo = (InsumoOficina) producto;
-                    stmt.setString(index++, insumo.getPresentacion());
-                    stmt.setString(index++, insumo.getTipoPapel());
-                    stmt.setInt(index++, insumo.getCantidadPorPaquete());
-                } else if (producto instanceof ProductoMobilario) {
-                    ProductoMobilario mobiliario = (ProductoMobilario) producto;
-                    stmt.setString(index++, mobiliario.getTipoMobilario());
-                    stmt.setString(index++, mobiliario.getMaterial());
-                    stmt.setString(index++, mobiliario.getColor());
-                    stmt.setString(index++, mobiliario.getDimensiones());
-                } else if (producto instanceof ProductoTecnologico) {
-                    ProductoTecnologico tecno = (ProductoTecnologico) producto;
-                    stmt.setString(index++, tecno.getMarca());
-                    stmt.setString(index++, tecno.getModelo());
-                    stmt.setString(index++, tecno.getNumeroSerie());
-                    stmt.setInt(index++, tecno.getGarantiaMeses());
-                    stmt.setString(index++, tecno.getEspecificacionesTecnicas());
+                // Primero borrar registro anterior para evitar duplicados
+                try (PreparedStatement deleteStmt = conn.prepareStatement("DELETE FROM insumos_oficina WHERE producto_id = ?")) {
+                    deleteStmt.setString(1, insumo.getId());
+                    deleteStmt.executeUpdate();
                 }
                 
-                // ID al final para la cláusula WHERE
-                stmt.setString(index, producto.getId());
+                // Insertar nuevo registro
+                String sqlInsumo = "INSERT INTO insumos_oficina (producto_id, presentacion, tipo_papel, cantidad_por_paquete) " +
+                                  "VALUES (?, ?, ?, ?)";
+                try (PreparedStatement stmtInsumo = conn.prepareStatement(sqlInsumo)) {
+                    stmtInsumo.setString(1, insumo.getId());
+                    stmtInsumo.setString(2, insumo.getPresentacion());
+                    stmtInsumo.setString(3, insumo.getTipoPapel());
+                    stmtInsumo.setInt(4, insumo.getCantidadPorPaquete());
+                    stmtInsumo.executeUpdate();
+                }
+            } else if (producto instanceof ProductoMobilario) {
+                // Similar para mobiliario
+                ProductoMobilario mobiliario = (ProductoMobilario) producto;
                 
-                return stmt.executeUpdate() > 0;
+                try (PreparedStatement deleteStmt = conn.prepareStatement("DELETE FROM productos_mobiliarios WHERE producto_id = ?")) {
+                    deleteStmt.setString(1, mobiliario.getId());
+                    deleteStmt.executeUpdate();
+                }
+                
+                String sqlMobiliario = "INSERT INTO productos_mobiliarios (producto_id, tipo_mobiliario, material, color, dimensiones) " +
+                                       "VALUES (?, ?, ?, ?, ?)";
+                try (PreparedStatement stmtMobiliario = conn.prepareStatement(sqlMobiliario)) {
+                    stmtMobiliario.setString(1, mobiliario.getId());
+                    stmtMobiliario.setString(2, mobiliario.getTipoMobilario());
+                    stmtMobiliario.setString(3, mobiliario.getMaterial());
+                    stmtMobiliario.setString(4, mobiliario.getColor());
+                    stmtMobiliario.setString(5, mobiliario.getDimensiones());
+                    stmtMobiliario.executeUpdate();
+                }
+            } else if (producto instanceof ProductoTecnologico) {
+                // Similar para tecnológico
+                ProductoTecnologico tecno = (ProductoTecnologico) producto;
+                
+                try (PreparedStatement deleteStmt = conn.prepareStatement("DELETE FROM productos_tecnologicos WHERE producto_id = ?")) {
+                    deleteStmt.setString(1, tecno.getId());
+                    deleteStmt.executeUpdate();
+                }
+                
+                String sqlTecnologico = "INSERT INTO productos_tecnologicos (producto_id, marca, modelo, numero_serie, garantia_meses, especificaciones_tecnicas) " +
+                                        "VALUES (?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement stmtTecnologico = conn.prepareStatement(sqlTecnologico)) {
+                    stmtTecnologico.setString(1, tecno.getId());
+                    stmtTecnologico.setString(2, tecno.getMarca());
+                    stmtTecnologico.setString(3, tecno.getModelo());
+                    stmtTecnologico.setString(4, tecno.getNumeroSerie());
+                    stmtTecnologico.setInt(5, tecno.getGarantiaMeses());
+                    stmtTecnologico.setString(6, tecno.getEspecificacionesTecnicas());
+                    stmtTecnologico.executeUpdate();
+                }
             }
+            
+            DBUtil.commitTransaction(conn);
+            return true;
+            
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    DBUtil.rollbackTransaction(conn);
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
             throw new RuntimeException("Error al actualizar el producto", e);
+        } finally {
+            DBUtil.closeQuietly(conn);
         }
     }
     
@@ -375,10 +415,15 @@ public class ProductoRepository {
         
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM productos")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, tipo_producto FROM productos")) {
             
             while (rs.next()) {
-                productos.add(mapResultSetToProducto(rs));
+                String id = rs.getString("id");
+                // Usar findById que ya maneja los JOINs correctamente
+                Producto producto = findById(id);
+                if (producto != null) {
+                    productos.add(producto);
+                }
             }
             
         } catch (SQLException e) {
@@ -493,37 +538,26 @@ public class ProductoRepository {
      */
     private Producto mapResultSetToProducto(ResultSet rs) throws SQLException {
         String id = rs.getString("id");
-        String nombre = rs.getString("nombre");
-        double precio = rs.getDouble("precio");
-        int cantidad = rs.getInt("cantidad");
-        Categoria categoria = Categoria.valueOf(rs.getString("categoria"));
         String tipoProducto = rs.getString("tipo_producto");
         
-        // Crear el objeto según el tipo
-        switch (tipoProducto) {
-            case "InsumoOficina":
-                String presentacion = rs.getString("presentacion");
-                String tipoPapel = rs.getString("tipo_papel");
-                int cantidadPorPaquete = rs.getInt("cantidad_por_paquete");
-                return new InsumoOficina(nombre, id, precio, cantidad, presentacion, tipoPapel, cantidadPorPaquete);
-                
-            case "ProductoMobiliario":
-                String tipoMobiliario = rs.getString("tipo_mobiliario");
-                String material = rs.getString("material");
-                String color = rs.getString("color");
-                String dimensiones = rs.getString("dimensiones");
-                return new ProductoMobilario(nombre, id, precio, cantidad, tipoMobiliario, material, color, dimensiones);
-                
-            case "ProductoTecnologico":
-                String marca = rs.getString("marca");
-                String modelo = rs.getString("modelo");
-                String numeroSerie = rs.getString("numero_serie");
-                int garantiaMeses = rs.getInt("garantia_meses");
-                String especificaciones = rs.getString("especificaciones_tecnicas");
-                return new ProductoTecnologico(nombre, id, precio, cantidad, marca, modelo, numeroSerie, garantiaMeses, especificaciones);
-                
-            default:
-                return new Producto(nombre, id, precio, cantidad, categoria);
+        // No podemos obtener los campos de las tablas relacionadas directamente
+        // Necesitamos hacer una query adicional para cada tipo de producto
+        
+        if (tipoProducto.equals("InsumoOficina")) {
+            return findById(id); // Esto ya hace el JOIN adecuado
+        } else if (tipoProducto.equals("ProductoMobiliario")) {
+            return findById(id);
+        } else if (tipoProducto.equals("ProductoTecnologico")) {
+            return findById(id);
+        } else {
+            // Producto básico
+            return new Producto(
+                rs.getString("nombre"),
+                id,
+                rs.getDouble("precio"),
+                rs.getInt("cantidad"),
+                Categoria.valueOf(rs.getString("categoria"))
+            );
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.distribuciones.omega.controllers;
 
-import com.distribuciones.omega.dao.UserDAO;
+import com.distribuciones.omega.model.Usuario;
+import com.distribuciones.omega.service.UsuarioService;
 import javafx.animation.FadeTransition;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -20,6 +21,9 @@ public class LoginController {
     @FXML private PasswordField txtPassword;
     @FXML private Button btnLogin;
     @FXML private Label lblError;
+    
+    // Instancia del servicio
+    private final UsuarioService usuarioService = new UsuarioService();
 
     @FXML
     private void initialize() {
@@ -43,17 +47,17 @@ public class LoginController {
             return;
         }
         
-        // Intento de autenticación
-        boolean authenticated = UserDAO.authenticate(user, pass);
+        // Intento de autenticación usando el servicio
+        Usuario usuario = usuarioService.autenticar(user, pass);
 
-        if (authenticated) {
+        if (usuario != null) {
             try {
                 FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/dashboard.fxml"));
                 Parent root = loader.load();
                 
                 DashboardController dashboardController = loader.getController();
-                dashboardController.setUsername(user);
+                dashboardController.setUsuario(usuario); 
 
                 Stage stage = (Stage) btnLogin.getScene().getWindow();
                 stage.setTitle("Distribuciones Ómega - Dashboard");
