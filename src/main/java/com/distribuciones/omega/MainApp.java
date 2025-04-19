@@ -1,5 +1,7 @@
 package com.distribuciones.omega;
 
+import com.distribuciones.omega.utils.DatabaseInitializer;
+
 import javafx.application.Application;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
@@ -15,6 +17,10 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+
+        // Inicializar la base de datos antes de cargar la interfaz
+        DatabaseInitializer.initialize();
+
         FXMLLoader loader = new FXMLLoader();
         URL url = getClass().getResource("/fxml/login.fxml");
         // Si hay un error de formato de número, modifica el FXML en memoria

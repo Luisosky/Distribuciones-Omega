@@ -1,7 +1,7 @@
 package com.distribuciones.omega.controllers;
 
 import com.distribuciones.omega.model.Cliente;
-import com.distribuciones.omega.dao.ClienteDAO;
+import com.distribuciones.omega.service.ClienteService;
 
 import java.util.List;
 
@@ -15,9 +15,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import io.github.cdimascio.dotenv.Dotenv;
-
-import java.sql.*;
 
 public class ClientesController { 
 
@@ -32,54 +29,27 @@ public class ClientesController {
     @FXML private Button btnBuscar;
     @FXML private Button btnLimpiarBusqueda;
 
-    private ClienteDAO dao;
-    private ObservableList<Cliente> clientesList = FXCollections.observableArrayList();
+    // Reemplazar DAO por Service
+    private ClienteService clienteService;
     private ObservableList<Cliente> clientesCompletos = FXCollections.observableArrayList();
     private FilteredList<Cliente> filteredList;
 
     @FXML
     void initialize() {
-        // 1) conectar y crear DAO
         try {
-            // Cargar variables desde .env usando la biblioteca
-            Dotenv dotenv = Dotenv.configure().load();
-            String dbUrl = dotenv.get("DB_URL");
-            String dbUser = dotenv.get("DB_USER");
-            String dbPass = dotenv.get("DB_PASS");
+            // Inicializar el servicio
+            clienteService = new ClienteService();
             
-            System.out.println("Intentando conectar a: " + dbUrl);
-            System.out.println("Usuario: " + dbUser);
-            
-            // Registrar el driver explícitamente
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            
-            Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass);
-            dao = new ClienteDAO(conn);
-
-            // Crear la tabla si no existe y cargar datos de ejemplo si está vacía
-            dao.createTableIfNotExists();
-            
-            // Continuar con la inicialización
+            // Configurar tabla y cargar datos
             setupTable();
             loadClients();
             setupSearch();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error de Conexión");
-            alert.setHeaderText("No se pudo conectar a la base de datos");
-            alert.setContentText("Detalles: " + e.getMessage());
-            alert.showAndWait();
-            return;
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error de Driver");
-            alert.setHeaderText("No se encontró el driver de MySQL");
-            alert.setContentText("Asegúrate de tener la dependencia de MySQL JDBC en tu proyecto");
-            alert.showAndWait();
-            return;
+            mostrarError("Error de Inicialización", 
+                         "No se pudo inicializar el controlador", 
+                         e.getMessage());
         }
     }
 
@@ -93,11 +63,11 @@ public class ClientesController {
     }
     
     private void loadClients() {
-        clientesList.clear();
         clientesCompletos.clear();
         try {
-            List<Cliente> clientes = dao.getActiveClientes();
-            clientesCompletos.addAll(clientes); // Guardamos todos los clientes
+            // Usar el servicio para obtener todos los clientes
+            List<Cliente> clientes = clienteService.obtenerTodosClientes();
+            clientesCompletos.addAll(clientes);
             
             // Crear la lista filtrada basada en la lista completa
             filteredList = new FilteredList<>(clientesCompletos, p -> true);
@@ -105,9 +75,11 @@ public class ClientesController {
             // Establecer la lista filtrada como fuente de datos para la tabla
             tableClientes.setItems(filteredList);
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("Error al cargar clientes", "No se pudieron cargar los clientes desde la base de datos", e.getMessage());
+            mostrarError("Error al cargar clientes", 
+                         "No se pudieron cargar los clientes", 
+                         e.getMessage());
         }
     }
     
@@ -146,12 +118,6 @@ public class ClientesController {
             // No hay coincidencia
             return false;
         });
-        
-        // Actualizar información sobre resultados encontrados
-        if (filteredList.isEmpty() && !texto.isEmpty()) {
-            // Podríamos mostrar un mensaje, pero mejor lo dejamos para cuando se presiona el botón,
-            // para no interrumpir la escritura con alertas constantes
-        }
     }
 
     @FXML
@@ -160,10 +126,15 @@ public class ClientesController {
             Cliente nuevo = new Cliente("","","","","");
             boolean ok = showFormDialog(nuevo, false);
             if (ok) {
-                dao.addCliente(nuevo);
-                clientesCompletos.add(nuevo);
-                // No es necesario añadir a clientesList ya que usamos FilteredList
-                filtrarClientesEnTiempoReal(txtBuscar.getText()); // Actualizar filtro
+                // Usar el servicio para guardar el cliente
+                Cliente clienteGuardado = clienteService.guardarCliente(nuevo);
+                if (clienteGuardado != null) {
+                    clientesCompletos.add(clienteGuardado);
+                    filtrarClientesEnTiempoReal(txtBuscar.getText()); // Actualizar filtro
+                } else {
+                    mostrarError("Error al guardar", "No se pudo guardar el cliente", 
+                                "Verifique que los datos sean correctos y que el cliente no exista");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -178,9 +149,14 @@ public class ClientesController {
             try {
                 boolean ok = showFormDialog(sel, true);
                 if (ok) {
-                    dao.updateCliente(sel);
-                    tableClientes.refresh();
-                    // La FilteredList se actualiza automáticamente
+                    // Usar el servicio para actualizar el cliente
+                    boolean actualizado = clienteService.actualizarCliente(sel);
+                    if (actualizado) {
+                        tableClientes.refresh();
+                    } else {
+                        mostrarError("Error al actualizar", "No se pudo actualizar el cliente", 
+                                    "Verifique que los datos sean correctos");
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -219,10 +195,16 @@ public class ClientesController {
                 );
                 
                 if (confirmar) {
-                    dao.deactivateCliente(sel.getId());
-                    clientesCompletos.remove(sel);
+                    // Usar el servicio para eliminar (soft delete) el cliente
+                    boolean eliminado = clienteService.eliminarCliente(sel.getIdCliente());
+                    if (eliminado) {
+                        clientesCompletos.remove(sel);
+                    } else {
+                        mostrarError("Error al eliminar", "No se pudo eliminar el cliente", 
+                                    "El cliente podría estar asociado a registros existentes");
+                    }
                 }
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 mostrarError("Error al eliminar", "No se pudo eliminar el cliente", e.getMessage());
             }

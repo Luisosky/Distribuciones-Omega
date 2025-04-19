@@ -143,14 +143,29 @@ public class ClienteRepository {
      */
     public List<Cliente> findAll() {
         List<Cliente> clientes = new ArrayList<>();
-        String sql = "SELECT * FROM clientes WHERE activo = true";
+        // Modificamos la consulta para ser más tolerante si la columna 'activo' no existe
+        String sql = "SELECT * FROM clientes";
         
         try (Connection conn = DBUtil.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+            Statement stmt = conn.createStatement()) {
             
-            while (rs.next()) {
-                clientes.add(mapResultSetToCliente(rs));
+            try {
+                // Primero intentamos con el filtro de activo
+                ResultSet rs = stmt.executeQuery(sql + " WHERE activo = true");
+                while (rs.next()) {
+                    clientes.add(mapResultSetToCliente(rs));
+                }
+            } catch (SQLException e) {
+                // Si hay error (ej: columna no existe), intentamos sin el filtro
+                if (e.getMessage().contains("Unknown column 'activo'")) {
+                    ResultSet rs = stmt.executeQuery(sql);
+                    while (rs.next()) {
+                        clientes.add(mapResultSetToCliente(rs));
+                    }
+                } else {
+                    // Si es otro tipo de error, lo propagamos
+                    throw e;
+                }
             }
             
         } catch (SQLException e) {
@@ -241,12 +256,44 @@ public class ClienteRepository {
         cliente.setIdCliente(rs.getLong("id_cliente"));
         cliente.setNombre(rs.getString("nombre"));
         cliente.setId(rs.getString("id"));
-        cliente.setEmail(rs.getString("email"));
-        cliente.setTelefono(rs.getString("telefono"));
-        cliente.setDireccion(rs.getString("direccion"));
-        cliente.setActive(rs.getBoolean("activo"));
-        cliente.setMayorista(rs.getBoolean("mayorista"));
-        cliente.setLimiteCredito(rs.getDouble("limite_credito"));
+        
+        // Manejar campos que podrían ser nulos o no existir
+        try {
+            cliente.setEmail(rs.getString("email"));
+        } catch (SQLException e) {
+            cliente.setEmail("");
+        }
+        
+        try {
+            cliente.setTelefono(rs.getString("telefono"));
+        } catch (SQLException e) {
+            cliente.setTelefono("");
+        }
+        
+        try {
+            cliente.setDireccion(rs.getString("direccion"));
+        } catch (SQLException e) {
+            cliente.setDireccion("");
+        }
+        
+        try {
+            cliente.setActive(rs.getBoolean("activo"));
+        } catch (SQLException e) {
+            cliente.setActive(true); // Por defecto activo
+        }
+        
+        try {
+            cliente.setMayorista(rs.getBoolean("mayorista"));
+        } catch (SQLException e) {
+            cliente.setMayorista(false); // Por defecto no mayorista
+        }
+        
+        try {
+            cliente.setLimiteCredito(rs.getDouble("limite_credito"));
+        } catch (SQLException e) {
+            cliente.setLimiteCredito(0.0); // Sin límite por defecto
+        }
+        
         return cliente;
     }
 }

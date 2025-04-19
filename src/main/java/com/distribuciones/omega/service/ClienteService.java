@@ -76,4 +76,13 @@ public class ClienteService {
     public boolean existeCliente(String numeroIdentificacion) {
         return clienteRepository.findByNumeroIdentificacion(numeroIdentificacion) != null;
     }
+
+    /**
+     * Elimina lógicamente un cliente (lo marca como inactivo)
+     * @param id ID del cliente
+     * @return true si la eliminación fue exitosa
+     */
+    public boolean eliminarCliente(Long id) {
+        return clienteRepository.softDelete(id);
+    }
 }

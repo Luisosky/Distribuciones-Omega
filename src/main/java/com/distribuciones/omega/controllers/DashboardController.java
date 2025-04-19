@@ -107,7 +107,7 @@ public class DashboardController {
         // Configurar acciones para los botones del menú expandido
         btnClientes.setOnAction(e -> loadView("clientes-gestion.fxml"));
         btnProductos.setOnAction(e -> loadView("productos-gestion.fxml"));
-        btnInventario.setOnAction(e -> loadView("inventario-gestion.fxml"));
+        btnInventario.setOnAction(e -> loadView("gestion.fxml"));
         btnCotizacion.setOnAction(e -> loadView("cotizacion.fxml"));
         btnVentas.setOnAction(e -> loadView("ventas-gestion.fxml"));
         btnReportes.setOnAction(e -> loadView("reportes-gestion.fxml"));
@@ -115,7 +115,7 @@ public class DashboardController {
         // Configurar acciones para los botones del menú contraído (mismas acciones)
         btnClientesCollapsed.setOnAction(e -> loadView("clientes-gestion.fxml"));
         btnProductosCollapsed.setOnAction(e -> loadView("productos-gestion.fxml"));
-        btnInventarioCollapsed.setOnAction(e -> loadView("inventario-gestion.fxml"));
+        btnInventarioCollapsed.setOnAction(e -> loadView("gestion.fxml"));
         btnCotizacionCollapsed.setOnAction(e -> loadView("cotizacion.fxml"));
         btnVentasCollapsed.setOnAction(e -> loadView("ventas-gestion.fxml"));
         btnReportesCollapsed.setOnAction(e -> loadView("reportes-gestion.fxml"));

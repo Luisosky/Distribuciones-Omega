@@ -415,7 +415,7 @@ public class ProductoRepository {
         
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, tipo_producto FROM productos")) {
+             ResultSet rs = stmt.executeQuery("SELECT id FROM productos")) {
             
             while (rs.next()) {
                 String id = rs.getString("id");
