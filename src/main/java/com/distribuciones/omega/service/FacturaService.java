@@ -72,6 +72,58 @@ public class FacturaService {
     }
     
     /**
+     * Genera una factura a partir de una cotización
+     * @param cotizacion Cotización a partir de la cual se generará la factura
+     * @return Factura generada o null si hubo un error
+     */
+    public Factura generarFacturaDesdeContizacion(Cotizacion cotizacion) {
+        if (cotizacion == null) {
+            return null;
+        }
+        
+        // Verificar que la cotización no esté ya convertida a orden/factura
+        if (cotizacion.isConvertidaAOrden()) {
+            return null;
+        }
+        
+        // Crear nueva factura
+        Factura factura = new Factura();
+        factura.setNumeroFactura(NumeroFacturaGenerator.generarNumeroFactura());
+        factura.setCliente(cotizacion.getCliente());
+        factura.setVendedor(cotizacion.getVendedor());
+        factura.setFecha(LocalDateTime.now());
+        factura.setCotizacionId(cotizacion.getId());
+        factura.setSubtotal(cotizacion.getSubtotal());
+        factura.setDescuento(cotizacion.getDescuento());
+        factura.setIva(cotizacion.getIva());
+        factura.setTotal(cotizacion.getTotal());
+        
+        // Copiar items desde la cotización
+        List<ItemFactura> itemsFactura = new ArrayList<>();
+        for (ItemCotizacion itemCotizacion : cotizacion.getItems()) {
+            ItemFactura itemFactura = new ItemFactura();
+            itemFactura.setProducto(itemCotizacion.getProducto());
+            itemFactura.setCantidad(itemCotizacion.getCantidad());
+            itemFactura.setPrecioUnitario(itemCotizacion.getPrecioUnitario());
+            itemFactura.setDescuento(itemCotizacion.getDescuento());
+            itemFactura.setSubtotal(itemCotizacion.getSubtotal());
+            itemsFactura.add(itemFactura);
+        }
+        factura.setItems(itemsFactura);
+        
+        // Guardar factura
+        Factura facturaGuardada = facturaRepository.save(factura);
+        
+        // Marcar la cotización como convertida a factura
+        if (facturaGuardada != null) {
+            cotizacion.setConvertidaAOrden(true);
+            cotizacionService.actualizarCotizacion(cotizacion);
+        }
+        
+        return facturaGuardada;
+    }
+    
+    /**
      * Busca una factura por su ID
      * @param id ID de la factura
      * @return Factura encontrada o null si no existe

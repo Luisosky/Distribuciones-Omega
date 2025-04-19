@@ -315,6 +315,97 @@ public class CotizacionRepository {
             return String.format("COT-%s-%04d", fecha, (int)(Math.random() * 9000) + 1000);
         }
     }
+
+    /**
+     * Actualiza una cotización existente en la base de datos
+     * @param cotizacion La cotización con los datos actualizados
+     * @return true si la actualización fue exitosa
+     */
+    public boolean update(Cotizacion cotizacion) {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+            
+            // 1. Actualizar la cotización principal
+            String sqlCotizacion = "UPDATE cotizaciones SET " +
+                                 "cliente_id = ?, " +
+                                 "vendedor_id = ?, " +
+                                 "fecha = ?, " +
+                                 "subtotal = ?, " +
+                                 "descuento = ?, " +
+                                 "iva = ?, " +
+                                 "total = ?, " +
+                                 "convertida_a_orden = ? " +
+                                 "WHERE id = ?";
+            
+            try (PreparedStatement stmt = conn.prepareStatement(sqlCotizacion)) {
+                stmt.setLong(1, cotizacion.getCliente().getIdCliente());
+                stmt.setLong(2, cotizacion.getVendedor().getIdUsuario());
+                stmt.setTimestamp(3, Timestamp.valueOf(cotizacion.getFecha()));
+                stmt.setDouble(4, cotizacion.getSubtotal());
+                stmt.setDouble(5, cotizacion.getDescuento());
+                stmt.setDouble(6, cotizacion.getIva());
+                stmt.setDouble(7, cotizacion.getTotal());
+                stmt.setBoolean(8, cotizacion.isConvertidaAOrden());
+                stmt.setLong(9, cotizacion.getId());
+                
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new SQLException("La actualización de la cotización falló, no se encontró la cotización con ID: " + cotizacion.getId());
+                }
+            }
+            
+            // Si hay nuevos items, puede ser más eficiente eliminar los anteriores y agregar los nuevos
+            // 2. Eliminar los items existentes
+            String sqlDeleteItems = "DELETE FROM items_cotizacion WHERE cotizacion_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDeleteItems)) {
+                stmt.setLong(1, cotizacion.getId());
+                stmt.executeUpdate();
+            }
+            
+            // 3. Insertar los nuevos items
+            if (cotizacion.getItems() != null && !cotizacion.getItems().isEmpty()) {
+                String sqlItems = "INSERT INTO items_cotizacion (cotizacion_id, producto_id, cantidad, precio_unitario, subtotal) " +
+                                "VALUES (?, ?, ?, ?, ?)";
+                
+                try (PreparedStatement stmt = conn.prepareStatement(sqlItems)) {
+                    for (ItemCotizacion item : cotizacion.getItems()) {
+                        stmt.setLong(1, cotizacion.getId());
+                        stmt.setLong(2, item.getProducto().getIdProducto());
+                        stmt.setInt(3, item.getCantidad());
+                        stmt.setDouble(4, item.getPrecioUnitario());
+                        stmt.setDouble(5, item.getSubtotal());
+                        stmt.addBatch();
+                    }
+                    stmt.executeBatch();
+                }
+            }
+            
+            conn.commit();
+            return true;
+            
+        } catch (SQLException e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
     
     /**
      * Convierte un ResultSet en un objeto Cotizacion

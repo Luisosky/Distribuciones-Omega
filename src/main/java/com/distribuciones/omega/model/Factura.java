@@ -12,6 +12,7 @@ public class Factura {
     private Usuario vendedor;
     private LocalDateTime fecha;
     private Long ordenId;
+    private Long cotizacionId; 
     private List<ItemFactura> items = new ArrayList<>();
     private double subtotal;
     private double descuento;
@@ -73,6 +74,14 @@ public class Factura {
     
     public void setOrdenId(Long ordenId) {
         this.ordenId = ordenId;
+    }
+    
+    public Long getCotizacionId() {
+        return cotizacionId;
+    }
+    
+    public void setCotizacionId(Long cotizacionId) {
+        this.cotizacionId = cotizacionId;
     }
     
     public List<ItemFactura> getItems() {

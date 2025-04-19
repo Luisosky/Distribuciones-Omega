@@ -5,6 +5,7 @@ public class ItemCotizacion {
     private ProductoInventario producto;
     private int cantidad;
     private double precioUnitario;
+    private double descuento;
     private double subtotal;
     
     public ItemCotizacion() {
@@ -15,11 +16,25 @@ public class ItemCotizacion {
         this.producto = producto;
         this.cantidad = cantidad;
         this.precioUnitario = precioUnitario;
-        actualizarSubtotal();
+        this.descuento = 0.0;
+        calcularSubtotal();
     }
     
+    /**
+     * Calcula el subtotal considerando la cantidad, precio unitario y descuento
+     */
+    public void calcularSubtotal() {
+        this.subtotal = (this.cantidad * this.precioUnitario) - this.descuento;
+        if (this.subtotal < 0) {
+            this.subtotal = 0;
+        }
+    }
+    
+    /**
+     * Método de compatibilidad con código existente
+     */
     public void actualizarSubtotal() {
-        this.subtotal = this.cantidad * this.precioUnitario;
+        calcularSubtotal();
     }
     
     // Getters y setters
@@ -45,7 +60,7 @@ public class ItemCotizacion {
     
     public void setCantidad(int cantidad) {
         this.cantidad = cantidad;
-        actualizarSubtotal();
+        calcularSubtotal();
     }
     
     public double getPrecioUnitario() {
@@ -54,7 +69,16 @@ public class ItemCotizacion {
     
     public void setPrecioUnitario(double precioUnitario) {
         this.precioUnitario = precioUnitario;
-        actualizarSubtotal();
+        calcularSubtotal();
+    }
+    
+    public double getDescuento() {
+        return descuento;
+    }
+    
+    public void setDescuento(double descuento) {
+        this.descuento = descuento;
+        calcularSubtotal();
     }
     
     public double getSubtotal() {

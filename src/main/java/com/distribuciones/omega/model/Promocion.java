@@ -2,48 +2,29 @@ package com.distribuciones.omega.model;
 
 import java.time.LocalDate;
 
+/**
+ * Modelo simplificado para promociones
+ */
 public class Promocion {
-    private Long id;
+    private int id;
     private String descripcion;
-    private String tipo;  // "PORCENTAJE", "2X1", "PRECIO_FIJO"
-    private double valor; // Porcentaje de descuento o precio fijo
-    private String codigoProducto; // Producto al que aplica la promoción
+    private double valor;
+    private boolean porcentaje; // true si es un porcentaje, false si es un valor fijo
     private LocalDate fechaInicio;
     private LocalDate fechaFin;
-    private boolean activa = true;
+    private boolean activa;
+    private String categoriasAplicables; // Categorías a las que aplica la promoción, separadas por comas
     
+    // Constructor
     public Promocion() {
-        // Constructor vacío necesario para frameworks
     }
     
-    public Promocion(String descripcion, String tipo, double valor, String codigoProducto, 
-                    LocalDate fechaInicio, LocalDate fechaFin) {
-        this.descripcion = descripcion;
-        this.tipo = tipo;
-        this.valor = valor;
-        this.codigoProducto = codigoProducto;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
-    }
-    
-    public Promocion(Long id, String descripcion, String tipo, double valor, String codigoProducto, 
-                    LocalDate fechaInicio, LocalDate fechaFin, boolean activa) {
-        this.id = id;
-        this.descripcion = descripcion;
-        this.tipo = tipo;
-        this.valor = valor;
-        this.codigoProducto = codigoProducto;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
-        this.activa = activa;
-    }
-    
-    // Getters y setters
-    public Long getId() {
+    // Getters y Setters
+    public int getId() {
         return id;
     }
     
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
     
@@ -55,14 +36,6 @@ public class Promocion {
         this.descripcion = descripcion;
     }
     
-    public String getTipo() {
-        return tipo;
-    }
-    
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
-    }
-    
     public double getValor() {
         return valor;
     }
@@ -71,12 +44,12 @@ public class Promocion {
         this.valor = valor;
     }
     
-    public String getCodigoProducto() {
-        return codigoProducto;
+    public boolean isPorcentaje() {
+        return porcentaje;
     }
     
-    public void setCodigoProducto(String codigoProducto) {
-        this.codigoProducto = codigoProducto;
+    public void setPorcentaje(boolean porcentaje) {
+        this.porcentaje = porcentaje;
     }
     
     public LocalDate getFechaInicio() {
@@ -103,27 +76,11 @@ public class Promocion {
         this.activa = activa;
     }
     
-    /**
-     * Verifica si la promoción está vigente en la fecha actual
-     */
-    public boolean estaVigente() {
-        LocalDate hoy = LocalDate.now();
-        return activa && 
-               (hoy.isEqual(fechaInicio) || hoy.isAfter(fechaInicio)) && 
-               (hoy.isEqual(fechaFin) || hoy.isBefore(fechaFin));
+    public String getCategoriasAplicables() {
+        return categoriasAplicables;
     }
     
-    /**
-     * Verifica si la promoción está vigente en una fecha específica
-     */
-    public boolean estaVigenteEn(LocalDate fecha) {
-        return activa && 
-               (fecha.isEqual(fechaInicio) || fecha.isAfter(fechaInicio)) && 
-               (fecha.isEqual(fechaFin) || fecha.isBefore(fechaFin));
-    }
-    
-    @Override
-    public String toString() {
-        return descripcion + " - " + tipo + " (" + valor + ")";
+    public void setCategoriasAplicables(String categoriasAplicables) {
+        this.categoriasAplicables = categoriasAplicables;
     }
 }

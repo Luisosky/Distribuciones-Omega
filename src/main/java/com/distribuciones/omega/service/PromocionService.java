@@ -72,7 +72,7 @@ public class PromocionService {
      * @param id ID de la promoción a eliminar
      * @return true si la eliminación fue exitosa
      */
-    public boolean eliminarPromocion(Long id) {
+    public boolean eliminarPromocion(int id) {  // Cambiado de Long a int
         return promocionRepository.delete(id);
     }
     
@@ -83,7 +83,8 @@ public class PromocionService {
      */
     public boolean tienePromocion2x1(String codigoProducto) {
         Promocion promocion = buscarPromocionPorProducto(codigoProducto);
-        return promocion != null && promocion.getTipo().equals("2X1");
+        // Verificar si es una promoción 2x1 basada en la descripción
+        return promocion != null && promocion.getDescripcion().toUpperCase().contains("2X1");
     }
     
     /**
@@ -93,9 +94,38 @@ public class PromocionService {
      */
     public double obtenerPorcentajeDescuento(String codigoProducto) {
         Promocion promocion = buscarPromocionPorProducto(codigoProducto);
-        if (promocion != null && promocion.getTipo().equals("PORCENTAJE")) {
+        if (promocion != null && promocion.isPorcentaje()) {
             return promocion.getValor();
         }
         return 0;
+    }
+    
+    /**
+     * Verifica si un producto o categoría tiene alguna promoción aplicable
+     * @param codigoProducto Código del producto
+     * @param categoria Categoría del producto
+     * @return Promoción aplicable o null si no hay
+     */
+    public Promocion buscarPromocionAplicable(String codigoProducto, String categoria) {
+        // Primero buscar por producto específico
+        Promocion promocionProducto = buscarPromocionPorProducto(codigoProducto);
+        if (promocionProducto != null) {
+            return promocionProducto;
+        }
+        
+        // Si no hay promoción específica para el producto, buscar por su categoría
+        List<Promocion> todasPromociones = obtenerPromocionesVigentes();
+        for (Promocion promocion : todasPromociones) {
+            String categoriasAplicables = promocion.getCategoriasAplicables();
+            
+            // Si aplica a todas las categorías o a la categoría específica
+            if (categoriasAplicables != null && 
+                (categoriasAplicables.equals("TODAS") || 
+                 categoriasAplicables.contains(categoria))) {
+                return promocion;
+            }
+        }
+        
+        return null;
     }
 }

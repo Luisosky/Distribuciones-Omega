@@ -10,6 +10,7 @@ import java.util.List;
 
 /**
  * Repositorio para operaciones CRUD de Promociones en la base de datos
+ * Adaptado para trabajar con la estructura actual de la clase Promocion
  */
 public class PromocionRepository {
 
@@ -26,11 +27,17 @@ public class PromocionRepository {
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             stmt.setString(1, promocion.getDescripcion());
-            stmt.setString(2, promocion.getTipo());
+            // Usar isPorcentaje para determinar el tipo
+            stmt.setString(2, promocion.isPorcentaje() ? "PORCENTAJE" : "VALOR_FIJO");
             stmt.setDouble(3, promocion.getValor());
-            stmt.setString(4, promocion.getCodigoProducto());
-            stmt.setDate(5, Date.valueOf(promocion.getFechaInicio()));
-            stmt.setDate(6, Date.valueOf(promocion.getFechaFin()));
+            // Usar categoriasAplicables como código_producto temporal
+            stmt.setString(4, getFirstCategory(promocion.getCategoriasAplicables()));
+            stmt.setDate(5, promocion.getFechaInicio() != null ? 
+                          Date.valueOf(promocion.getFechaInicio()) : 
+                          Date.valueOf(LocalDate.now()));
+            stmt.setDate(6, promocion.getFechaFin() != null ? 
+                          Date.valueOf(promocion.getFechaFin()) : 
+                          Date.valueOf(LocalDate.now().plusMonths(1)));
             stmt.setBoolean(7, promocion.isActiva());
             
             int affectedRows = stmt.executeUpdate();
@@ -41,7 +48,8 @@ public class PromocionRepository {
             
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    promocion.setId(generatedKeys.getLong(1));
+                    // Convertir Long a int para que coincida con el tipo de la clase Promocion
+                    promocion.setId((int)generatedKeys.getLong(1));
                 } else {
                     throw new SQLException("La creación de la promoción falló, no se obtuvo el ID.");
                 }
@@ -68,13 +76,19 @@ public class PromocionRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, promocion.getDescripcion());
-            stmt.setString(2, promocion.getTipo());
+            // Usar isPorcentaje para determinar el tipo
+            stmt.setString(2, promocion.isPorcentaje() ? "PORCENTAJE" : "VALOR_FIJO");
             stmt.setDouble(3, promocion.getValor());
-            stmt.setString(4, promocion.getCodigoProducto());
-            stmt.setDate(5, Date.valueOf(promocion.getFechaInicio()));
-            stmt.setDate(6, Date.valueOf(promocion.getFechaFin()));
+            // Usar categoriasAplicables como código_producto temporal
+            stmt.setString(4, getFirstCategory(promocion.getCategoriasAplicables()));
+            stmt.setDate(5, promocion.getFechaInicio() != null ? 
+                          Date.valueOf(promocion.getFechaInicio()) : 
+                          Date.valueOf(LocalDate.now()));
+            stmt.setDate(6, promocion.getFechaFin() != null ? 
+                          Date.valueOf(promocion.getFechaFin()) : 
+                          Date.valueOf(LocalDate.now().plusMonths(1)));
             stmt.setBoolean(7, promocion.isActiva());
-            stmt.setLong(8, promocion.getId());
+            stmt.setInt(8, promocion.getId());  // Cambiado de setLong a setInt
             
             int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
@@ -90,13 +104,13 @@ public class PromocionRepository {
      * @param id ID de la promoción a eliminar
      * @return true si la eliminación fue exitosa
      */
-    public boolean delete(Long id) {
+    public boolean delete(int id) {  // Cambiado de Long a int
         String sql = "DELETE FROM promociones WHERE id = ?";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setLong(1, id);
+            stmt.setInt(1, id);  // Cambiado de setLong a setInt
             int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
             
@@ -111,13 +125,13 @@ public class PromocionRepository {
      * @param id ID de la promoción
      * @return Promoción encontrada o null si no existe
      */
-    public Promocion findById(Long id) {
+    public Promocion findById(int id) {  // Cambiado de Long a int
         String sql = "SELECT * FROM promociones WHERE id = ?";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setLong(1, id);
+            stmt.setInt(1, id);  // Cambiado de setLong a setInt
             ResultSet rs = stmt.executeQuery();
             
             if (rs.next()) {
@@ -221,14 +235,54 @@ public class PromocionRepository {
      */
     private Promocion mapResultSetToPromocion(ResultSet rs) throws SQLException {
         Promocion promocion = new Promocion();
-        promocion.setId(rs.getLong("id"));
+        // Convertir Long a int para que coincida con el tipo de la clase Promocion
+        promocion.setId((int)rs.getLong("id"));
         promocion.setDescripcion(rs.getString("descripcion"));
-        promocion.setTipo(rs.getString("tipo"));
+        
+        // Mapear el "tipo" de la DB al atributo "porcentaje" del modelo
+        String tipo = rs.getString("tipo");
+        promocion.setPorcentaje("PORCENTAJE".equals(tipo));
+        
         promocion.setValor(rs.getDouble("valor"));
-        promocion.setCodigoProducto(rs.getString("codigo_producto"));
-        promocion.setFechaInicio(rs.getDate("fecha_inicio").toLocalDate());
-        promocion.setFechaFin(rs.getDate("fecha_fin").toLocalDate());
+        
+        // Mapear código_producto a categoriasAplicables
+        String codigoProducto = rs.getString("codigo_producto");
+        if (codigoProducto != null && !codigoProducto.isEmpty()) {
+            if (codigoProducto.equals("TODAS")) {
+                promocion.setCategoriasAplicables("TODAS");
+            } else {
+                promocion.setCategoriasAplicables(codigoProducto);
+            }
+        }
+        
+        // Mapear fechas
+        Date fechaInicio = rs.getDate("fecha_inicio");
+        if (fechaInicio != null) {
+            promocion.setFechaInicio(fechaInicio.toLocalDate());
+        }
+        
+        Date fechaFin = rs.getDate("fecha_fin");
+        if (fechaFin != null) {
+            promocion.setFechaFin(fechaFin.toLocalDate());
+        }
+        
         promocion.setActiva(rs.getBoolean("activa"));
         return promocion;
+    }
+    
+    /**
+     * Obtiene la primera categoría de una lista separada por comas
+     * o devuelve la cadena completa si no hay comas
+     */
+    private String getFirstCategory(String categorias) {
+        if (categorias == null || categorias.isEmpty()) {
+            return "TODAS";
+        }
+        
+        if (categorias.contains(",")) {
+            return categorias.split(",")[0];
+        }
+        
+        return categorias;
     }
 }

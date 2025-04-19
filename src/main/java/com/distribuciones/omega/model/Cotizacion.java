@@ -17,6 +17,7 @@ public class Cotizacion {
     private double iva;
     private double total;
     private boolean convertidaAOrden = false;
+    private String observaciones;
     
     public Cotizacion() {
         // Constructor vacío necesario para frameworks
@@ -109,6 +110,14 @@ public class Cotizacion {
     
     public void setConvertidaAOrden(boolean convertidaAOrden) {
         this.convertidaAOrden = convertidaAOrden;
+    }
+    
+    public String getObservaciones() {
+        return observaciones;
+    }
+    
+    public void setObservaciones(String observaciones) {
+        this.observaciones = observaciones;
     }
     
     /**

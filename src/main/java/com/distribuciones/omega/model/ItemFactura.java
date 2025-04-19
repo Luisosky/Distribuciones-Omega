@@ -1,25 +1,48 @@
 package com.distribuciones.omega.model;
 
+/**
+ * Modelo para representar un item de factura
+ */
 public class ItemFactura {
     private Long id;
     private ProductoInventario producto;
     private int cantidad;
     private double precioUnitario;
+    private double descuento;
     private double subtotal;
     
+    /**
+     * Constructor vacío
+     */
     public ItemFactura() {
-        // Constructor vacío necesario para frameworks
     }
     
+    /**
+     * Constructor con parámetros
+     */
     public ItemFactura(ProductoInventario producto, int cantidad, double precioUnitario) {
         this.producto = producto;
         this.cantidad = cantidad;
         this.precioUnitario = precioUnitario;
-        actualizarSubtotal();
+        this.descuento = 0.0;
+        calcularSubtotal();
     }
     
+    /**
+     * Calcula el subtotal considerando cantidad, precio unitario y descuento
+     */
+    public void calcularSubtotal() {
+        this.subtotal = (this.cantidad * this.precioUnitario) - this.descuento;
+        if (this.subtotal < 0) {
+            this.subtotal = 0;
+        }
+    }
+    
+    /**
+     * Método de compatibilidad con código existente
+     */
     public void actualizarSubtotal() {
-        this.subtotal = this.cantidad * this.precioUnitario;
+        calcularSubtotal();
     }
     
     // Getters y setters
@@ -45,7 +68,7 @@ public class ItemFactura {
     
     public void setCantidad(int cantidad) {
         this.cantidad = cantidad;
-        actualizarSubtotal();
+        calcularSubtotal();
     }
     
     public double getPrecioUnitario() {
@@ -54,7 +77,16 @@ public class ItemFactura {
     
     public void setPrecioUnitario(double precioUnitario) {
         this.precioUnitario = precioUnitario;
-        actualizarSubtotal();
+        calcularSubtotal();
+    }
+    
+    public double getDescuento() {
+        return descuento;
+    }
+    
+    public void setDescuento(double descuento) {
+        this.descuento = descuento;
+        calcularSubtotal();
     }
     
     public double getSubtotal() {

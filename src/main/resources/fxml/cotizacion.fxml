@@ -1,122 +1,152 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/20"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.distribuciones.omega.controllers.CotizacionController"
-            style="-fx-background-color: white;">
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 
-    <top>
+<VBox prefHeight="700.0" prefWidth="1000.0" spacing="10" stylesheets="/css/cotizacion.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.distribuciones.omega.controllers.CotizacionController">
+    <padding>
+        <Insets bottom="20" left="20" right="20" top="20" />
+    </padding>
+    
+    <HBox alignment="CENTER" styleClass="header">
+        <Label styleClass="title-label" text="Generación de Cotización" />
+    </HBox>
+    
+    <GridPane hgap="10" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="100" prefWidth="150" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="200" prefWidth="250" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="100" prefWidth="150" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="200" prefWidth="250" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints minHeight="30" prefHeight="40" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="30" prefHeight="40" vgrow="SOMETIMES" />
+        </rowConstraints>
+        
+        <!-- Primera fila -->
+        <Label text="Cliente:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <ComboBox fx:id="cmbCliente" prefWidth="200" promptText="Seleccionar cliente" />
+            <Button fx:id="btnNuevoCliente" onAction="#mostrarNuevoCliente" text="+" />
+        </HBox>
+        
+        <Label text="Tipo de Venta:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+        <ComboBox fx:id="cmbTipoVenta" prefWidth="250" promptText="Seleccionar tipo" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+        
+        <!-- Segunda fila -->
+        <Label text="Fecha:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <DatePicker fx:id="dpFecha" prefWidth="250" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+        
+        <Label text="Vendedor:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+        <TextField fx:id="txtVendedor" disable="true" prefWidth="250" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+    </GridPane>
+    
+    <!-- Sección de búsqueda de productos -->
+    <TitledPane animated="true" collapsible="true" expanded="true" text="Buscar Productos">
         <VBox spacing="10">
-            <padding>
-                <Insets top="20" right="20" bottom="10" left="20"/>
-            </padding>
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <TextField fx:id="txtBuscarProducto" prefWidth="300" promptText="Buscar por código o nombre" />
+                <Button fx:id="btnBuscar" onAction="#buscarProductos" text="Buscar" />
+                <Region HBox.hgrow="ALWAYS" />
+                <CheckBox fx:id="chkMostrarSoloDisponibles" selected="true" text="Mostrar solo con stock" />
+            </HBox>
             
-            <Label text="Cotización / Orden" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+            <TableView fx:id="tblProductos" prefHeight="150" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="colCodigo" prefWidth="100" text="Código" />
+                    <TableColumn fx:id="colNombre" prefWidth="250" text="Nombre" />
+                    <TableColumn fx:id="colCategoria" prefWidth="120" text="Categoría" />
+                    <TableColumn fx:id="colPrecioUnitario" prefWidth="100" text="Precio Unit." />
+                    <TableColumn fx:id="colStock" prefWidth="80" text="Stock" />
+                    <TableColumn fx:id="colAcciones" prefWidth="150" text="Acciones" />
+                </columns>
+            <columnResizePolicy>
+               <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+            </columnResizePolicy>
+            </TableView>
+        </VBox>
+    </TitledPane>
+    
+    <!-- Sección de detalle de la cotización -->
+    <TitledPane animated="true" collapsible="true" expanded="true" text="Detalle de Cotización">
+        <VBox spacing="10">
+            <TableView fx:id="tblDetalleCotizacion" prefHeight="200" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="colItemCodigo" prefWidth="80" text="Código" />
+                    <TableColumn fx:id="colItemNombre" prefWidth="200" text="Nombre" />
+                    <TableColumn fx:id="colItemCantidad" prefWidth="80" text="Cantidad" />
+                    <TableColumn fx:id="colItemPrecioUnitario" prefWidth="100" text="Precio Unit." />
+                    <TableColumn fx:id="colItemDescuento" prefWidth="100" text="Descuento" />
+                    <TableColumn fx:id="colItemSubtotal" prefWidth="100" text="Subtotal" />
+                    <TableColumn fx:id="colItemAcciones" prefWidth="120" text="Acciones" />
+                </columns>
+            <columnResizePolicy>
+               <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+            </columnResizePolicy>
+            </TableView>
             
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Cliente:" style="-fx-font-weight: bold;"/>
-                <ComboBox fx:id="cmbCliente" prefWidth="300"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="lblVendedor" style="-fx-font-style: italic;"/>
+            <HBox alignment="CENTER_RIGHT" spacing="10">
+                <Button fx:id="btnAplicarPromocion" onAction="#aplicarPromocion" text="Aplicar Promoción" />
+                <Button fx:id="btnAplicarDescuentoMayorista" onAction="#aplicarDescuentoMayorista" text="Descuento Mayorista" />
+                <Button fx:id="btnDescuentoManual" onAction="#aplicarDescuentoManual" text="Descuento Manual" />
             </HBox>
         </VBox>
-    </top>
+    </TitledPane>
     
-    <center>
-        <SplitPane dividerPositions="0.5" orientation="VERTICAL">
-            <!-- Panel de productos disponibles -->
-            <VBox spacing="10">
-                <padding>
-                    <Insets top="10" right="10" bottom="10" left="10"/>
-                </padding>
-                
-                <Label text="Productos disponibles" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
-                
-                <TableView fx:id="tblInventario" VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="colCodigo" text="Código" prefWidth="100"/>
-                        <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="300"/>
-                        <TableColumn fx:id="colPrecio" text="Precio" prefWidth="100"/>
-                        <TableColumn fx:id="colStock" text="Stock" prefWidth="80"/>
-                        <TableColumn fx:id="colSerie" text="Número de Serie" prefWidth="150"/>
-                    </columns>
-                </TableView>
-                
-                <HBox spacing="10" alignment="CENTER_RIGHT">
-                    <Button fx:id="btnAgregar" text="Agregar Producto" style="-fx-background-color: #4a90e2; -fx-text-fill: white;"/>
-                </HBox>
-            </VBox>
+    <!-- Resumen y totales -->
+    <HBox alignment="CENTER_RIGHT" spacing="20">
+        <GridPane hgap="15" vgap="10">
+            <columnConstraints>
+                <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" minWidth="100" prefWidth="150" />
+                <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" minWidth="100" prefWidth="150" />
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="25" prefHeight="30" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="25" prefHeight="30" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="25" prefHeight="30" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="30" prefHeight="35" vgrow="SOMETIMES" />
+            </rowConstraints>
             
-            <!-- Panel de productos en cotización -->
-            <VBox spacing="10">
-                <padding>
-                    <Insets top="10" right="10" bottom="10" left="10"/>
-                </padding>
-                
-                <Label text="Productos en cotización" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
-                
-                <TableView fx:id="tblCotizacion" VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="colItemCodigo" text="Código" prefWidth="100"/>
-                        <TableColumn fx:id="colItemDescripcion" text="Descripción" prefWidth="300"/>
-                        <TableColumn fx:id="colItemCantidad" text="Cantidad" prefWidth="100"/>
-                        <TableColumn fx:id="colItemPrecio" text="Precio Unit." prefWidth="100"/>
-                        <TableColumn fx:id="colItemSubtotal" text="Subtotal" prefWidth="130"/>
-                    </columns>
-                </TableView>
-                
-                <HBox spacing="10" alignment="CENTER_RIGHT">
-                    <Button fx:id="btnQuitar" text="Quitar Producto" style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
-                </HBox>
-            </VBox>
-        </SplitPane>
-    </center>
+            <Label text="Subtotal:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+            <Label fx:id="lblSubtotal" styleClass="value-label" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+            
+            <Label text="Descuento Total:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+            <Label fx:id="lblDescuentoTotal" styleClass="value-label" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            
+            <Label text="IVA (12%):" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+            <Label fx:id="lblIva" styleClass="value-label" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            
+            <Label styleClass="total-label" text="TOTAL:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+            <Label fx:id="lblTotal" styleClass="total-value" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+        </GridPane>
+    </HBox>
     
-    <bottom>
-        <VBox spacing="15">
-            <padding>
-                <Insets top="10" right="20" bottom="20" left="20"/>
-            </padding>
-            
-            <!-- Sección de totales y descuentos -->
-            <HBox spacing="20">
-                <VBox spacing="5" alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
-                    <HBox spacing="10" alignment="CENTER_RIGHT">
-                        <Label text="Descuento adicional (%):"/>
-                        <TextField fx:id="txtDescuentoAdicional" prefWidth="80"/>
-                    </HBox>
-                </VBox>
-                
-                <GridPane hgap="10" vgap="5" alignment="CENTER_RIGHT">
-                    <columnConstraints>
-                        <ColumnConstraints halignment="RIGHT"/>
-                        <ColumnConstraints halignment="RIGHT" prefWidth="100"/>
-                    </columnConstraints>
-                    
-                    <Label text="Subtotal:" style="-fx-font-weight: bold;" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                    <Label fx:id="lblSubtotal" text="$0.00" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
-                    
-                    <Label text="Descuento:" style="-fx-font-weight: bold;" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                    <Label fx:id="lblDescuento" text="$0.00" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
-                    
-                    <Label text="IVA (16%):" style="-fx-font-weight: bold;" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                    <Label fx:id="lblIVA" text="$0.00" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-                    
-                    <Label text="Total:" style="-fx-font-weight: bold; -fx-font-size: 16px;" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                    <Label fx:id="lblTotal" text="$0.00" style="-fx-font-weight: bold; -fx-font-size: 16px;" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
-                </GridPane>
-            </HBox>
-            
-            <!-- Botones de acción -->
-            <HBox spacing="15" alignment="CENTER_RIGHT">
-                <Button fx:id="btnCrearCotizacion" text="Crear Cotización" style="-fx-background-color: #2ecc71; -fx-text-fill: white;"/>
-                <Button fx:id="btnGenerarOrden" text="Generar Orden" style="-fx-background-color: #3498db; -fx-text-fill: white;" disable="true"/>
-                <Button fx:id="btnGenerarFactura" text="Generar Factura" style="-fx-background-color: #9b59b6; -fx-text-fill: white;" disable="true"/>
-            </HBox>
-        </VBox>
-    </bottom>
-</BorderPane>
+    <!-- Observaciones -->
+    <VBox spacing="5">
+        <Label text="Observaciones:" />
+        <TextArea fx:id="txtObservaciones" prefHeight="60" promptText="Ingrese observaciones adicionales para esta cotización" />
+    </VBox>
+    
+    <!-- Botones de acción -->
+    <HBox alignment="CENTER_RIGHT" spacing="15">
+        <Button fx:id="btnCancelar" onAction="#cancelarCotizacion" text="Cancelar" />
+        <Button fx:id="btnGuardar" onAction="#guardarCotizacion" text="Guardar Cotización" />
+        <Button fx:id="btnGuardarYFacturar" onAction="#guardarYFacturar" styleClass="primary-button" text="Guardar y Facturar" />
+    </HBox>
+</VBox>
