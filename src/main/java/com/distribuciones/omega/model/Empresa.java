@@ -8,7 +8,7 @@ public class Empresa {
     private String id;
     private List<Producto> productos = new ArrayList<>(); 
     private List<Cliente> clientes = new ArrayList<>();
-    private List<Empleado> empleados = new ArrayList<>();
+    private List<Usuario> empleados = new ArrayList<>();
 
     public Empresa(String nombre, String id) {
         this.nombre = nombre;
@@ -57,10 +57,10 @@ public class Empresa {
     public void eliminarClientePorId(String id) {
         this.clientes.removeIf(cliente -> cliente.getId().equals(id));
     }
-    public void agregarEmpleado(Empleado empleado) {
+    public void agregarEmpleado(Usuario empleado) {
         this.empleados.add(empleado);
     }
-    public void eliminarEmpleado(Empleado empleado) {
+    public void eliminarEmpleado(Usuario empleado) {
         this.empleados.remove(empleado);
     }
     public void eliminarEmpleadoPorId(String id) {

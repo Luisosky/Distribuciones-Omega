@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/20"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.distribuciones.omega.controllers.CotizacionController"
+            style="-fx-background-color: white;">
+
+    <top>
+        <VBox spacing="10">
+            <padding>
+                <Insets top="20" right="20" bottom="10" left="20"/>
+            </padding>
+            
+            <Label text="Cotización / Orden" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+            
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Cliente:" style="-fx-font-weight: bold;"/>
+                <ComboBox fx:id="cmbCliente" prefWidth="300"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblVendedor" style="-fx-font-style: italic;"/>
+            </HBox>
+        </VBox>
+    </top>
+    
+    <center>
+        <SplitPane dividerPositions="0.5" orientation="VERTICAL">
+            <!-- Panel de productos disponibles -->
+            <VBox spacing="10">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+                
+                <Label text="Productos disponibles" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                
+                <TableView fx:id="tblInventario" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colCodigo" text="Código" prefWidth="100"/>
+                        <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="300"/>
+                        <TableColumn fx:id="colPrecio" text="Precio" prefWidth="100"/>
+                        <TableColumn fx:id="colStock" text="Stock" prefWidth="80"/>
+                        <TableColumn fx:id="colSerie" text="Número de Serie" prefWidth="150"/>
+                    </columns>
+                </TableView>
+                
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button fx:id="btnAgregar" text="Agregar Producto" style="-fx-background-color: #4a90e2; -fx-text-fill: white;"/>
+                </HBox>
+            </VBox>
+            
+            <!-- Panel de productos en cotización -->
+            <VBox spacing="10">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+                
+                <Label text="Productos en cotización" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                
+                <TableView fx:id="tblCotizacion" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colItemCodigo" text="Código" prefWidth="100"/>
+                        <TableColumn fx:id="colItemDescripcion" text="Descripción" prefWidth="300"/>
+                        <TableColumn fx:id="colItemCantidad" text="Cantidad" prefWidth="100"/>
+                        <TableColumn fx:id="colItemPrecio" text="Precio Unit." prefWidth="100"/>
+                        <TableColumn fx:id="colItemSubtotal" text="Subtotal" prefWidth="130"/>
+                    </columns>
+                </TableView>
+                
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button fx:id="btnQuitar" text="Quitar Producto" style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+                </HBox>
+            </VBox>
+        </SplitPane>
+    </center>
+    
+    <bottom>
+        <VBox spacing="15">
+            <padding>
+                <Insets top="10" right="20" bottom="20" left="20"/>
+            </padding>
+            
+            <!-- Sección de totales y descuentos -->
+            <HBox spacing="20">
+                <VBox spacing="5" alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
+                    <HBox spacing="10" alignment="CENTER_RIGHT">
+                        <Label text="Descuento adicional (%):"/>
+                        <TextField fx:id="txtDescuentoAdicional" prefWidth="80"/>
+                    </HBox>
+                </VBox>
+                
+                <GridPane hgap="10" vgap="5" alignment="CENTER_RIGHT">
+                    <columnConstraints>
+                        <ColumnConstraints halignment="RIGHT"/>
+                        <ColumnConstraints halignment="RIGHT" prefWidth="100"/>
+                    </columnConstraints>
+                    
+                    <Label text="Subtotal:" style="-fx-font-weight: bold;" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblSubtotal" text="$0.00" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Descuento:" style="-fx-font-weight: bold;" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblDescuento" text="$0.00" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    
+                    <Label text="IVA (16%):" style="-fx-font-weight: bold;" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblIVA" text="$0.00" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Total:" style="-fx-font-weight: bold; -fx-font-size: 16px;" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblTotal" text="$0.00" style="-fx-font-weight: bold; -fx-font-size: 16px;" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                </GridPane>
+            </HBox>
+            
+            <!-- Botones de acción -->
+            <HBox spacing="15" alignment="CENTER_RIGHT">
+                <Button fx:id="btnCrearCotizacion" text="Crear Cotización" style="-fx-background-color: #2ecc71; -fx-text-fill: white;"/>
+                <Button fx:id="btnGenerarOrden" text="Generar Orden" style="-fx-background-color: #3498db; -fx-text-fill: white;" disable="true"/>
+                <Button fx:id="btnGenerarFactura" text="Generar Factura" style="-fx-background-color: #9b59b6; -fx-text-fill: white;" disable="true"/>
+            </HBox>
+        </VBox>
+    </bottom>
+</BorderPane>

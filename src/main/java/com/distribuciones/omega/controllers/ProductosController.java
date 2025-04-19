@@ -1,13 +1,12 @@
 package com.distribuciones.omega.controllers;
 
-import com.distribuciones.omega.dao.ProductoDAO;
 import com.distribuciones.omega.model.Producto;
 import com.distribuciones.omega.model.Categoria;
 import com.distribuciones.omega.model.InsumoOficina;
 import com.distribuciones.omega.model.ProductoMobilario;
 import com.distribuciones.omega.model.ProductoTecnologico;
+import com.distribuciones.omega.service.ProductoService;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -16,20 +15,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Optional;
@@ -52,30 +44,18 @@ public class ProductosController {
     @FXML private Label lblTotalProductos;
     @FXML private Label lblValorInventario;
     
-    private ProductoDAO dao;
+    private ProductoService productoService;
     private ObservableList<Producto> productosList = FXCollections.observableArrayList();
     private FilteredList<Producto> filteredProductos;
     
     @FXML
     void initialize() {
         try {
-            // Inicializar conexión a la base de datos
-            Dotenv dotenv = Dotenv.configure().load();
-            String dbUrl = dotenv.get("DB_URL");
-            String dbUser = dotenv.get("DB_USER");
-            String dbPass = dotenv.get("DB_PASS");
-
-            System.out.println("Intentando conectar a: " + dbUrl);
-            System.out.println("Usuario: " + dbUser);
+            // Inicializar servicio
+            productoService = new ProductoService();
             
-            // Registrar el driver explícitamente
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            
-            Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass);
-            dao = new ProductoDAO(conn);
-            
-            // Crear la tabla si no existe
-            dao.createTableIfNotExists();
+            // Inicializar la base de datos si es necesario
+            productoService.initializeDatabase();
             
             // Configurar la tabla
             setupTable();
@@ -89,12 +69,9 @@ public class ProductosController {
             // Configurar búsqueda
             setupSearch();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            showError("Error de conexión", "No se pudo conectar a la base de datos", e.getMessage());
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            showError("Error de driver", "No se encontró el driver de MySQL", e.getMessage());
+            showError("Error de inicialización", "No se pudo inicializar la aplicación", e.getMessage());
         }
     }
     
@@ -123,10 +100,10 @@ public class ProductosController {
     private void loadProductos() {
         try {
             productosList.clear();
-            productosList.addAll(dao.getAllProductos());
+            productosList.addAll(productoService.getAllProductos());
             
             updateStats();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             showError("Error de carga", "No se pudieron cargar los productos", e.getMessage());
         }
@@ -189,7 +166,7 @@ public class ProductosController {
         Optional<Producto> result = dialog.showAndWait();
         result.ifPresent(producto -> {
             try {
-                dao.addProducto(producto);
+                productoService.saveProducto(producto);
                 productosList.add(producto);
                 updateStats();
                 
@@ -204,7 +181,7 @@ public class ProductosController {
                     handleNuevoProductoMismaCategoria(categoriaSeleccionada);
                 }
                 
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 showError("Error al agregar", "No se pudo agregar el producto", e.getMessage());
             }
@@ -217,7 +194,7 @@ public class ProductosController {
         Optional<Producto> result = dialog.showAndWait();
         result.ifPresent(producto -> {
             try {
-                dao.addProducto(producto);
+                productoService.saveProducto(producto);
                 productosList.add(producto);
                 updateStats();
                 
@@ -231,7 +208,7 @@ public class ProductosController {
                     handleNuevoProductoMismaCategoria(categoria);
                 }
                 
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 showError("Error al agregar", "No se pudo agregar el producto", e.getMessage());
             }
@@ -251,17 +228,22 @@ public class ProductosController {
         Optional<Producto> result = dialog.showAndWait();
         result.ifPresent(productoActualizado -> {
             try {
-                dao.updateProducto(productoActualizado);
+                boolean actualizado = productoService.updateProducto(productoActualizado);
                 
-                // Actualizar en la lista
-                int index = productosList.indexOf(productoSeleccionado);
-                if (index >= 0) {
-                    productosList.set(index, productoActualizado);
+                if (actualizado) {
+                    // Actualizar en la lista
+                    int index = productosList.indexOf(productoSeleccionado);
+                    if (index >= 0) {
+                        productosList.set(index, productoActualizado);
+                    }
+                    
+                    updateStats();
+                } else {
+                    showError("Error al actualizar", "No se pudo actualizar el producto", 
+                             "El producto con ID " + productoActualizado.getId() + " no existe.");
                 }
                 
-                updateStats();
-                
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 showError("Error al actualizar", "No se pudo actualizar el producto", e.getMessage());
             }
@@ -284,10 +266,16 @@ public class ProductosController {
         
         if (confirmar) {
             try {
-                dao.deleteProducto(productoSeleccionado.getId());
-                productosList.remove(productoSeleccionado);
-                updateStats();
-            } catch (SQLException e) {
+                boolean eliminado = productoService.deleteProducto(productoSeleccionado.getId());
+                
+                if (eliminado) {
+                    productosList.remove(productoSeleccionado);
+                    updateStats();
+                } else {
+                    showError("Error al eliminar", "No se pudo eliminar el producto", 
+                             "El producto con ID " + productoSeleccionado.getId() + " no existe.");
+                }
+            } catch (Exception e) {
                 e.printStackTrace();
                 showError("Error al eliminar", "No se pudo eliminar el producto", e.getMessage());
             }
@@ -488,10 +476,10 @@ public class ProductosController {
         } else {
             // Generar ID automático para productos nuevos
             try {
-                String newId = dao.generateNewId(categoria);
+                String newId = productoService.generateNewId(categoria);
                 txtId.setText(newId);
                 txtId.setEditable(false);
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 txtId.setPromptText("Ingrese un ID único");
             }

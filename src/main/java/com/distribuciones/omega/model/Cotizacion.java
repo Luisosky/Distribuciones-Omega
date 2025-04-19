@@ -5,24 +5,20 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Factura {
+public class Cotizacion {
     private Long id;
-    private String numeroFactura;
+    private String numeroCotizacion;
     private Cliente cliente;
     private Usuario vendedor;
     private LocalDateTime fecha;
-    private Long ordenId;
-    private List<ItemFactura> items = new ArrayList<>();
+    private List<ItemCotizacion> items = new ArrayList<>();
     private double subtotal;
     private double descuento;
     private double iva;
     private double total;
-    private boolean anulada = false;
-    private String motivoAnulacion;
-    private LocalDateTime fechaAnulacion;
-    private String formaPago;
+    private boolean convertidaAOrden = false;
     
-    public Factura() {
+    public Cotizacion() {
         // Constructor vacío necesario para frameworks
     }
     
@@ -35,12 +31,12 @@ public class Factura {
         this.id = id;
     }
     
-    public String getNumeroFactura() {
-        return numeroFactura;
+    public String getNumeroCotizacion() {
+        return numeroCotizacion;
     }
     
-    public void setNumeroFactura(String numeroFactura) {
-        this.numeroFactura = numeroFactura;
+    public void setNumeroCotizacion(String numeroCotizacion) {
+        this.numeroCotizacion = numeroCotizacion;
     }
     
     public Cliente getCliente() {
@@ -67,19 +63,11 @@ public class Factura {
         this.fecha = fecha;
     }
     
-    public Long getOrdenId() {
-        return ordenId;
-    }
-    
-    public void setOrdenId(Long ordenId) {
-        this.ordenId = ordenId;
-    }
-    
-    public List<ItemFactura> getItems() {
+    public List<ItemCotizacion> getItems() {
         return items;
     }
     
-    public void setItems(List<ItemFactura> items) {
+    public void setItems(List<ItemCotizacion> items) {
         this.items = items;
     }
     
@@ -115,52 +103,35 @@ public class Factura {
         this.total = total;
     }
     
-    public boolean isAnulada() {
-        return anulada;
+    public boolean isConvertidaAOrden() {
+        return convertidaAOrden;
     }
     
-    public void setAnulada(boolean anulada) {
-        this.anulada = anulada;
-    }
-    
-    public String getMotivoAnulacion() {
-        return motivoAnulacion;
-    }
-    
-    public void setMotivoAnulacion(String motivoAnulacion) {
-        this.motivoAnulacion = motivoAnulacion;
-    }
-    
-    public LocalDateTime getFechaAnulacion() {
-        return fechaAnulacion;
-    }
-    
-    public void setFechaAnulacion(LocalDateTime fechaAnulacion) {
-        this.fechaAnulacion = fechaAnulacion;
-    }
-    
-    public String getFormaPago() {
-        return formaPago;
-    }
-    
-    public void setFormaPago(String formaPago) {
-        this.formaPago = formaPago;
+    public void setConvertidaAOrden(boolean convertidaAOrden) {
+        this.convertidaAOrden = convertidaAOrden;
     }
     
     /**
-     * Agrega un item a la factura
+     * Agrega un item a la cotización
      */
-    public void agregarItem(ItemFactura item) {
+    public void agregarItem(ItemCotizacion item) {
         items.add(item);
     }
     
     /**
-     * Calcula los totales de la factura
+     * Elimina un item de la cotización
+     */
+    public void eliminarItem(ItemCotizacion item) {
+        items.remove(item);
+    }
+    
+    /**
+     * Calcula los totales de la cotización
      */
     public void calcularTotales() {
         // Calcular subtotal
         subtotal = items.stream()
-                .mapToDouble(ItemFactura::getSubtotal)
+                .mapToDouble(ItemCotizacion::getSubtotal)
                 .sum();
         
         // Para descuentos e IVA se usarían los valores ya establecidos
@@ -172,7 +143,7 @@ public class Factura {
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        return "Factura #" + numeroFactura + " - " + 
+        return "Cotización #" + numeroCotizacion + " - " + 
                (fecha != null ? fecha.format(formatter) : "N/A") + 
                " - Cliente: " + (cliente != null ? cliente.getNombre() : "N/A");
     }

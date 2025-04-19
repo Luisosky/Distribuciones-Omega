@@ -4,7 +4,6 @@ public class DetalleFactura {
     private int cantidad;
     private Double valor;
     private Double descuento;
-    private final Double IVA = 0.12;
     private Double valortTotal;
 
     public DetalleFactura(int cantidad, Double valor, Double descuento) {
