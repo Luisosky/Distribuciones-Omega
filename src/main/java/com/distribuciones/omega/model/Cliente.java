@@ -6,6 +6,7 @@ public class Cliente {
     private String emailString;
     private String telefono;
     private String direccion;
+    private boolean active = true;
 
 
     public Cliente(String nombre, String id, String emailString, String telefono, String direccion) {
@@ -14,6 +15,7 @@ public class Cliente {
         this.emailString = emailString;
         this.telefono = telefono;
         this.direccion = direccion;
+        this.active = true;
     }
 
     public String getNombre() {
@@ -46,6 +48,13 @@ public class Cliente {
     public void setDireccion(String direccion) {
         this.direccion = direccion;
     }
+    public boolean isActive() {
+        return active;
+    }
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     @Override
     public String toString() {
         return "Cliente{" +

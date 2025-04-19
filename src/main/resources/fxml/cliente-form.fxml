@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+
+<VBox prefHeight="400.0" prefWidth="350.0" spacing="15" style="-fx-background-color: linear-gradient(to bottom, #f0f8ff, #e6f2ff);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.distribuciones.omega.controllers.ClienteFormController">
+    <padding>
+        <Insets bottom="20" left="20" right="20" top="20" />
+    </padding>
+    
+    <!-- Título con efecto de sombra -->
+    <HBox alignment="CENTER" style="-fx-background-color: #4a90e2; -fx-background-radius: 10;">
+        <padding>
+            <Insets bottom="10" left="15" right="15" top="10" />
+        </padding>
+        <Label style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: white;" text="Formulario Cliente 📄">
+            <effect>
+                <DropShadow>
+                    <color>
+                        <Color opacity="0.3" />
+                    </color>
+                </DropShadow>
+            </effect>
+        </Label>
+        <effect>
+            <DropShadow />
+        </effect>
+    </HBox>
+    
+    <!-- Espacio después del título -->
+    <HBox prefHeight="10.0" />
+    
+    <!-- Formulario con efecto de sombra -->
+    <GridPane hgap="15" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 15;" vgap="15">
+        <padding>
+            <Insets bottom="10" left="10" right="10" top="10" />
+        </padding>
+        <columnConstraints>
+            <ColumnConstraints halignment="RIGHT" prefWidth="100" />
+            <ColumnConstraints hgrow="ALWAYS" prefWidth="200" />
+        </columnConstraints>
+        
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="ID:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <TextField fx:id="tfId" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <TextField fx:id="tfNombre" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Email:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+        <TextField fx:id="tfEmail" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Teléfono:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+        <TextField fx:id="tfTelefono" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+        <Label style="-fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Dirección:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+        <TextField fx:id="tfDireccion" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+        
+        <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+        </rowConstraints>
+        <effect>
+            <DropShadow>
+                <color>
+                    <Color opacity="0.2" />
+                </color>
+            </DropShadow>
+        </effect>
+    </GridPane>
+
+    <!-- Botones con mejor estilo -->
+    <HBox alignment="CENTER" spacing="20">
+        <Button onAction="#onCancel" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5;" text="Cancelar">
+            <padding>
+                <Insets bottom="10" left="20" right="20" top="10" />
+            </padding>
+            <effect>
+                <DropShadow height="5.0" radius="2.0" width="5.0">
+                    <color>
+                        <Color opacity="0.3" />
+                    </color>
+                </DropShadow>
+            </effect>
+        </Button>
+        <Button defaultButton="true" onAction="#onSave" style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5;" text="Guardar">
+            <padding>
+                <Insets bottom="10" left="20" right="20" top="10" />
+            </padding>
+            <effect>
+                <DropShadow height="5.0" radius="2.0" width="5.0">
+                    <color>
+                        <Color opacity="0.3" />
+                    </color>
+                </DropShadow>
+            </effect>
+        </Button>
+    </HBox>
+</VBox>

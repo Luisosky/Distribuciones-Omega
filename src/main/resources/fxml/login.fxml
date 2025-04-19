@@ -5,42 +5,141 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.paint.LinearGradient?>
+<?import javafx.scene.paint.Stop?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Font?>
 
-<VBox alignment="CENTER" spacing="20" styleClass="root-pane" stylesheets="@../css/login.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.distribuciones.omega.controllers.LoginController">
-  
-  <padding>
-    <Insets bottom="30" left="30" right="30" top="30" />
-  </padding>
-
-  <!-- Título -->
-  <Label styleClass="title-label" text="Distribuciones Ómega" />
-
-  <!-- Formulario en GridPane -->
-  <GridPane hgap="10" vgap="10">
-    <columnConstraints>
-      <ColumnConstraints halignment="RIGHT" percentWidth="30" />
-      <ColumnConstraints halignment="LEFT" percentWidth="70" />
-    </columnConstraints>
-
-    <Label text="Usuario:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-    <TextField fx:id="txtUsername" promptText="Usuario" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-
-    <Label text="Contraseña:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-    <PasswordField fx:id="txtPassword" promptText="Contraseña" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-      <rowConstraints>
-         <RowConstraints />
-         <RowConstraints />
-      </rowConstraints>
-  </GridPane>
-   <VBox>
-      <children>
-      
-        <!-- Botón -->
-        <Button fx:id="btnLogin" maxWidth="Infinity" styleClass="login-button" text="Ingresar" />
-      </children>
-   </VBox>
-</VBox>
+<StackPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.distribuciones.omega.controllers.LoginController">
+    <!-- Fondo con gradiente -->
+    <Rectangle width="100%" height="100%">
+        <fill>
+            <LinearGradient endX="1.0" endY="1.0">
+                <stops>
+                    <Stop>
+                        <color>
+                            <Color red="0.95" green="0.98" blue="1.0" />
+                        </color>
+                    </Stop>
+                    <Stop offset="1.0">
+                        <color>
+                            <Color red="0.85" green="0.92" blue="0.98" />
+                        </color>
+                    </Stop>
+                </stops>
+            </LinearGradient>
+        </fill>
+    </Rectangle>
+    
+    <!-- Tarjeta de login -->
+    <VBox alignment="CENTER" maxWidth="450.0" spacing="0" style="-fx-background-color: white; -fx-background-radius: 15;">
+        <effect>
+            <DropShadow height="30.0" radius="14.5" width="30.0">
+                <color>
+                    <Color opacity="0.2" />
+                </color>
+            </DropShadow>
+        </effect>
+        
+        <!-- Cabecera -->
+        <HBox alignment="CENTER" style="-fx-background-color: #4a90e2; -fx-background-radius: 15 15 0 0;">
+            <padding>
+                <Insets bottom="25" left="30" right="30" top="25" />
+            </padding>
+            <Label text="Distribuciones Ómega" textFill="WHITE">
+                <font>
+                    <Font name="System Bold" size="24.0" />
+                </font>
+            </Label>
+        </HBox>
+        
+        <!-- Formulario -->
+        <VBox alignment="CENTER" spacing="25">
+            <padding>
+                <Insets bottom="40" left="40" right="40" top="40" />
+            </padding>
+            
+            <Label text="Iniciar Sesión" textFill="#2c3e50">
+                <font>
+                    <Font name="System Bold" size="18.0" />
+                </font>
+            </Label>
+            
+            <!-- Campos de entrada -->
+            <VBox spacing="20">
+                <VBox spacing="8">
+                    <Label text="Usuario" textFill="#5d6d7e">
+                        <font>
+                            <Font name="System Bold" size="12.0" />
+                        </font>
+                    </Label>
+                    <TextField fx:id="txtUsername" prefHeight="40.0" promptText="Ingrese su nombre de usuario" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;">
+                        <font>
+                            <Font size="14.0" />
+                        </font>
+                    </TextField>
+                </VBox>
+                
+                <VBox spacing="8">
+                    <Label text="Contraseña" textFill="#5d6d7e">
+                        <font>
+                            <Font name="System Bold" size="12.0" />
+                        </font>
+                    </Label>
+                    <PasswordField fx:id="txtPassword" prefHeight="40.0" promptText="Ingrese su contraseña" style="-fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;">
+                        <font>
+                            <Font size="14.0" />
+                        </font>
+                    </PasswordField>
+                </VBox>
+                
+                <!-- Botón de login -->
+                <Button fx:id="btnLogin" defaultButton="true" maxWidth="Infinity" prefHeight="45.0" style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5;" text="INICIAR SESIÓN">
+                    <font>
+                        <Font name="System Bold" size="14.0" />
+                    </font>
+                    <VBox.margin>
+                        <Insets top="15.0" />
+                    </VBox.margin>
+                    <effect>
+                        <DropShadow height="5.0" radius="2.0" width="5.0">
+                            <color>
+                                <Color opacity="0.3" />
+                            </color>
+                        </DropShadow>
+                    </effect>
+                </Button>
+                
+                <!-- Mensaje de error (inicialmente invisible) -->
+                <Label fx:id="lblError" text="Usuario o contraseña incorrectos" textFill="#e74c3c" visible="false">
+                    <font>
+                        <Font name="System Bold" size="12.0" />
+                    </font>
+                    <VBox.margin>
+                        <Insets top="10.0" />
+                    </VBox.margin>
+                </Label>
+            </VBox>
+        </VBox>
+        
+        <!-- Pie de página -->
+        <HBox alignment="CENTER" style="-fx-background-color: #f5f5f5; -fx-background-radius: 0 0 15 15;">
+            <padding>
+                <Insets bottom="15" left="20" right="20" top="15" />
+            </padding>
+            <Label text="© 2025 Distribuciones Ómega - Todos los derechos reservados" textFill="#95a5a6">
+                <font>
+                    <Font size="11.0" />
+                </font>
+            </Label>
+        </HBox>
+    </VBox>
+</StackPane>
