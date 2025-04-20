@@ -17,8 +17,20 @@ if %errorlevel% neq 0 (
     echo ADVERTENCIA: MySQL no fue detectado. Asegurese de tener MySQL instalado.
 )
 
-:: Crear directorio de aplicación
+:: Verificar espacio en disco
+for /f "tokens=3" %%a in ('dir /s /-c "%~dp0" ^| find "bytes"') do set SIZE=%%a
+for /f "tokens=3" %%a in ('dir /-c "%USERPROFILE%\" ^| find "bytes free"') do set FREE=%%a
+if %FREE% LSS %SIZE% (
+    echo ERROR: No hay suficiente espacio en disco para instalar la aplicación.
+    pause
+    exit /b 1
+)
+
+:: Preguntar al usuario dónde quiere instalar
 set INSTALL_DIR=%USERPROFILE%\Distribuciones-Omega
+set /p CUSTOM_DIR="Presione Enter para instalar en %USERPROFILE%\Distribuciones-Omega o ingrese una ruta personalizada: "
+if not "%CUSTOM_DIR%"=="" set INSTALL_DIR=%CUSTOM_DIR%
+
 echo Instalando en %INSTALL_DIR%
 
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
@@ -40,6 +52,22 @@ echo End If >> "%TEMP%\CreateShortcut.vbs"
 echo oLink.Save >> "%TEMP%\CreateShortcut.vbs"
 cscript /nologo "%TEMP%\CreateShortcut.vbs"
 del "%TEMP%\CreateShortcut.vbs"
+
+:: Agregar opción para crear un acceso directo en el menú inicio
+echo Set oWS = WScript.CreateObject("WScript.Shell") > "%TEMP%\StartMenu.vbs"
+echo Set FSO = CreateObject("Scripting.FileSystemObject") >> "%TEMP%\StartMenu.vbs"
+echo sLinkFile = oWS.SpecialFolders("StartMenu") ^& "\Programs\Distribuciones Omega.lnk" >> "%TEMP%\StartMenu.vbs"
+echo Set oLink = oWS.CreateShortcut(sLinkFile) >> "%TEMP%\StartMenu.vbs"
+echo oLink.TargetPath = "%INSTALL_DIR%\ejecutar.bat" >> "%TEMP%\StartMenu.vbs"
+echo oLink.WorkingDirectory = "%INSTALL_DIR%" >> "%TEMP%\StartMenu.vbs"
+echo oLink.Description = "Distribuciones Omega" >> "%TEMP%\StartMenu.vbs"
+echo oLink.WindowStyle = 1 >> "%TEMP%\StartMenu.vbs"
+echo If FSO.FileExists("%INSTALL_DIR%\src\main\resources\images\logo.ico") Then >> "%TEMP%\StartMenu.vbs"
+echo   oLink.IconLocation = "%INSTALL_DIR%\src\main\resources\images\logo.ico, 0" >> "%TEMP%\StartMenu.vbs"
+echo End If >> "%TEMP%\StartMenu.vbs"
+echo oLink.Save >> "%TEMP%\StartMenu.vbs"
+cscript /nologo "%TEMP%\StartMenu.vbs"
+del "%TEMP%\StartMenu.vbs"
 
 :: Copiar también el script ejecutar.bat si no existe ya en la carpeta de instalación
 if not exist "%INSTALL_DIR%\ejecutar.bat" (
@@ -88,6 +116,8 @@ if not exist "%INSTALL_DIR%\ejecutar.bat" (
 )
 
 echo.
-echo Instalacion completada! Puede encontrar un acceso directo en su escritorio.
+echo Instalacion completada! Puede encontrar accesos directos en:
+echo - Escritorio
+echo - Menú de inicio
 echo.
 pause
