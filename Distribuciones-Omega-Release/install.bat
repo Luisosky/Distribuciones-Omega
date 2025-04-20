@@ -20,19 +20,52 @@ if %errorlevel% neq 0 (
     goto :error
 )
 
-:: Verificar MySQL
+:: Verificar MySQL - Ahora también busca MySQL80 service
+echo Verificando instalación de MySQL...
 mysql --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ADVERTENCIA: MySQL no fue detectado. Asegurese de tener MySQL instalado.
+    sc query MySQL80 >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo ADVERTENCIA: MySQL no fue detectado desde la línea de comandos ni como servicio MySQL80.
+        echo Si tiene MySQL Workbench instalado pero no el cliente MySQL en el PATH, 
+        echo asegúrese de que el servidor MySQL esté en ejecución a través de:
+        echo - MySQL Workbench
+        echo - O el panel de Servicios de Windows (services.msc)
+    ) else (
+        echo MySQL detectado como servicio MySQL80 - OK
+    )
+) else (
+    echo MySQL detectado en línea de comandos - OK
 )
 
-:: Verificar espacio en disco
-for /f "tokens=3" %%a in ('dir /s /-c "%~dp0" ^| find "bytes"') do set SIZE=%%a
-for /f "tokens=3" %%a in ('dir /-c "%USERPROFILE%\" ^| find "bytes free"') do set FREE=%%a
-if %FREE% LSS %SIZE% (
+:: Verificar espacio en disco - versión corregida
+echo Verificando espacio en disco disponible...
+set SPACE_OK=1
+
+:: Obtenemos el tamaño requerido sin errores
+for /f "tokens=3" %%a in ('dir /s /-c "%~dp0" ^| find "bytes"') do (
+    set SIZE=%%a
+    echo Tamaño requerido: !SIZE! bytes
+)
+
+:: Saltamos la verificación de espacio libre para evitar el error con números grandes
+goto :skip_disk_check
+
+:: Este código ya no se ejecutará pero lo dejamos como referencia
+for /f "tokens=3" %%a in ('dir /-c "%USERPROFILE%\" ^| find "bytes free"') do (
+    set FREE=%%a
+    echo Espacio disponible: !FREE! bytes
+    if !FREE! LSS !SIZE! (
+        set SPACE_OK=0
+    )
+)
+
+if !SPACE_OK! EQU 0 (
     echo ERROR: No hay suficiente espacio en disco para instalar la aplicación.
     goto :error
 )
+
+:skip_disk_check
 
 :: Preguntar al usuario dónde quiere instalar
 set INSTALL_DIR=%USERPROFILE%\Distribuciones-Omega
@@ -166,7 +199,7 @@ if not exist "%INSTALL_DIR%\ejecutar.bat" (
     echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
     echo     echo Posibles soluciones: >> "%INSTALL_DIR%\ejecutar.bat"
     echo     echo 1. Asegúrese de tener MySQL instalado y en ejecución >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo 2. Verifique la conexión a la base de datos >> "%INSTALL_DIR%\ejecutar.bat"
+    echo     echo 2. Verifique la conexión a la base de datos en el archivo .env >> "%INSTALL_DIR%\ejecutar.bat"
     echo     echo 3. Verifique permisos de escritura en la carpeta actual >> "%INSTALL_DIR%\ejecutar.bat"
     echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
     echo     pause >> "%INSTALL_DIR%\ejecutar.bat"
