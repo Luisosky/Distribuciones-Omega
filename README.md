@@ -15,6 +15,17 @@ Sistema integral de gestión para distribuidoras mayoristas.
 ### Requisitos previos
 - Java 17 o superior
 - MySQL 5.7 o superior
+- Maven 3.6 o superior (para compilación)
+
+## Preparación
+1. Descargar el código fuente
+2. Compilar el proyecto con: `mvn clean package`
+3. Ejecutar el instalador: `install.bat`
+
+### Opción 2: Desde el código fuente
+1. Clona el repositorio
+2. Compila con Maven: `mvn clean package`
+3. Ejecuta `install.bat`
 
 ### Opciones de instalación
 
