@@ -2,6 +2,7 @@ package com.distribuciones.omega.service;
 
 import com.distribuciones.omega.model.ProductoInventario;
 import com.distribuciones.omega.repository.InventarioRepository;
+import com.distribuciones.omega.service.AlertaStockService;
 
 import java.util.List;
 
@@ -74,6 +75,10 @@ public class InventarioService {
             
             if (!resultado) {
                 System.err.println("Error al actualizar stock para: " + producto.getDescripcion());
+            } else {
+                // Verificar si el stock actualizado está por debajo del mínimo
+                AlertaStockService alertaService = new AlertaStockService();
+                alertaService.verificarProducto(producto);
             }
             
             return resultado;
@@ -121,7 +126,15 @@ public class InventarioService {
             producto.setStock(nuevoStock);
             
             // 4. Guardar cambios
-            return inventarioRepository.update(producto);
+            boolean resultado = inventarioRepository.update(producto);
+            
+            // 5. Verificar si el stock actualizado está por debajo del mínimo
+            if (resultado) {
+                AlertaStockService alertaService = new AlertaStockService();
+                alertaService.verificarProducto(producto);
+            }
+            
+            return resultado;
             
         } catch (Exception e) {
             System.err.println("Error al actualizar stock: " + e.getMessage());
@@ -212,6 +225,14 @@ public class InventarioService {
      * @return true si la actualización fue exitosa
      */
     public boolean actualizarProducto(ProductoInventario producto) {
-        return inventarioRepository.update(producto);
+        boolean resultado = inventarioRepository.update(producto);
+        
+        // Verificar si el stock actualizado está por debajo del mínimo
+        if (resultado) {
+            AlertaStockService alertaService = new AlertaStockService();
+            alertaService.verificarProducto(producto);
+        }
+        
+        return resultado;
     }
 }

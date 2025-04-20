@@ -118,16 +118,42 @@ public class ImprimirFacturaController {
     public void setFactura(Factura factura) {
         this.factura = factura;
         
+        System.out.println("Factura ID: " + factura.getId());
+        System.out.println("Número de items en la factura: " + 
+                (factura.getItems() != null ? factura.getItems().size() : "null"));
+        
+        if (factura.getItems() != null) {
+            for (ItemFactura item : factura.getItems()) {
+                System.out.println("Item: " + item.getId() + 
+                        ", Producto: " + (item.getProducto() != null ? item.getProducto().getDescripcion() : "null") + 
+                        ", Cantidad: " + item.getCantidad());
+            }
+        }
+        
         // Actualizar UI con datos de la factura
         lblNumeroFactura.setText(factura.getNumeroFactura());
         lblFecha.setText(factura.getFecha().format(dateFormatter));
         lblCliente.setText(factura.getCliente().getNombre());
-        lblDireccion.setText(factura.getCliente().getDireccion());
-        lblRuc.setText(factura.getCliente().getId());
+        lblDireccion.setText(factura.getCliente().getDireccion() != null ? factura.getCliente().getDireccion() : "");
+        lblRuc.setText(factura.getCliente().getId() != null ? factura.getCliente().getId() : "");
         lblVendedor.setText(factura.getVendedor().getNombre());
         
-        // Cargar items
-        ObservableList<ItemFactura> items = FXCollections.observableArrayList(factura.getItems());
+        // Cargar items - Asegurarnos de que los items estén cargados
+        if (factura.getItems() == null || factura.getItems().isEmpty()) {
+            // Si no hay items, intentar cargarlos nuevamente desde la BD
+            try {
+                com.distribuciones.omega.service.FacturaService facturaService = new com.distribuciones.omega.service.FacturaService();
+                Factura facturaCompleta = facturaService.obtenerFacturaPorId(factura.getId());
+                if (facturaCompleta != null && facturaCompleta.getItems() != null) {
+                    this.factura = facturaCompleta;
+                }
+            } catch (Exception e) {
+                System.err.println("Error al cargar items de factura: " + e.getMessage());
+            }
+        }
+        
+        // Poblar la tabla con los items
+        ObservableList<ItemFactura> items = FXCollections.observableArrayList(this.factura.getItems());
         tblItems.setItems(items);
         
         // Actualizar totales
@@ -220,8 +246,8 @@ public class ImprimirFacturaController {
         // Información del cliente
         html.append("<td class='client-info'>");
         html.append("<strong>Cliente:</strong> ").append(factura.getCliente().getNombre()).append("<br/>");
-        html.append("<strong>RUC/CI:</strong> ").append(factura.getCliente().getId()).append("<br/>");
-        html.append("<strong>Dirección:</strong> ").append(factura.getCliente().getDireccion()).append("<br/>");
+        html.append("<strong>RUC/CI:</strong> ").append(factura.getCliente().getId() != null ? factura.getCliente().getId() : "").append("<br/>");
+        html.append("<strong>Dirección:</strong> ").append(factura.getCliente().getDireccion() != null ? factura.getCliente().getDireccion() : "").append("<br/>");
         if (factura.getCliente().getTelefono() != null && !factura.getCliente().getTelefono().isEmpty()) {
             html.append("<strong>Teléfono:</strong> ").append(factura.getCliente().getTelefono()).append("<br/>");
         }
@@ -247,14 +273,18 @@ public class ImprimirFacturaController {
         html.append("<th>Subtotal</th>");
         html.append("</tr></thead><tbody>");
         
-        // Filas de items
-        for (ItemFactura item : factura.getItems()) {
-            html.append("<tr>");
-            html.append("<td>").append(item.getCantidad()).append("</td>");
-            html.append("<td>").append(item.getProducto().getDescripcion()).append("</td>");
-            html.append("<td>").append(formatCurrency(item.getPrecioUnitario())).append("</td>");
-            html.append("<td>").append(formatCurrency(item.getSubtotal())).append("</td>");
-            html.append("</tr>");
+        // Filas de items - Verificar que los items no sean nulos
+        if (factura.getItems() != null && !factura.getItems().isEmpty()) {
+            for (ItemFactura item : factura.getItems()) {
+                html.append("<tr>");
+                html.append("<td>").append(item.getCantidad()).append("</td>");
+                html.append("<td>").append(item.getProducto() != null ? item.getProducto().getDescripcion() : "Producto no disponible").append("</td>");
+                html.append("<td>").append(formatCurrency(item.getPrecioUnitario())).append("</td>");
+                html.append("<td>").append(formatCurrency(item.getSubtotal())).append("</td>");
+                html.append("</tr>");
+            }
+        } else {
+            html.append("<tr><td colspan='4' style='text-align:center'>No hay productos en esta factura</td></tr>");
         }
         
         html.append("</tbody></table>");

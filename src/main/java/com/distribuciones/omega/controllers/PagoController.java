@@ -7,6 +7,11 @@ import com.distribuciones.omega.utils.AlertUtils;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.TextArea;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
@@ -229,13 +234,34 @@ public class PagoController {
     @FXML
     private void imprimirFactura() {
         try {
-            // Aquí implementarías la lógica de impresión
-            // Por ahora solo mostramos un mensaje
-            AlertUtils.mostrarInformacion("Impresión", 
-                    "La factura " + factura.getNumeroFactura() + " se ha enviado a imprimir");
+            // Obtener la factura actualizada de la base de datos
+            Factura facturaActualizada = facturaService.obtenerFacturaPorId(factura.getId());
+            
+            if (facturaActualizada == null) {
+                AlertUtils.mostrarError("Error", "No se pudo obtener la información actualizada de la factura");
+                return;
+            }
+            
+            // Cargar el controlador de impresión de factura
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/imprimir-factura.fxml"));
+            Parent root = loader.load();
+            
+            // Obtener el controlador y configurar la factura
+            ImprimirFacturaController controller = loader.getController();
+            controller.setFactura(facturaActualizada);
+            
+            // Crear una nueva escena y ventana
+            Scene scene = new Scene(root);
+            Stage stage = new Stage();
+            stage.setTitle("Imprimir Factura - " + facturaActualizada.getNumeroFactura());
+            stage.setScene(scene);
+            stage.initModality(Modality.APPLICATION_MODAL); 
+            stage.showAndWait();
+            
         } catch (Exception e) {
             AlertUtils.mostrarError("Error", 
-                    "Error al imprimir: " + e.getMessage());
+                    "Error al preparar la impresión: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

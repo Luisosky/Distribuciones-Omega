@@ -1,6 +1,7 @@
 package com.distribuciones.omega;
 
 import com.distribuciones.omega.utils.DatabaseInitializer;
+import com.distribuciones.omega.utils.InventarioMonitor;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -30,6 +31,13 @@ import java.util.logging.Logger;
 public class MainApp extends Application {
     
     private static final Logger LOGGER = Logger.getLogger(MainApp.class.getName());
+
+    @Override
+    public void init() throws Exception {
+        super.init();
+        // Iniciar el monitor de inventario (verificar cada 12 horas)
+        InventarioMonitor.getInstance().iniciarMonitoreo(12);
+    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -110,6 +118,13 @@ public class MainApp extends Application {
         });
         
         new Thread(initTask).start();
+    }
+    
+    @Override
+    public void stop() throws Exception {
+        // Detener el monitor al cerrar la aplicación
+        InventarioMonitor.getInstance().detenerMonitoreo();
+        super.stop();
     }
     
     private void loadMainScene(Stage stage) throws Exception {

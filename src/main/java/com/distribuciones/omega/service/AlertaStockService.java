@@ -22,7 +22,7 @@ public class AlertaStockService {
                                            .load();
     private static final String EMAIL = dotenv.get("EMAIL");
     
-    private static int stockMinimo = 4; // Valor por defecto
+    private static int stockMinimo = 1; // Valor por defecto
     private static String emailAdmin = EMAIL; // Valor por defecto
     
     private final InventarioService inventarioService;

@@ -173,37 +173,28 @@ public class FacturaService {
      */
     public boolean actualizarEstadoPago(Long facturaId, boolean pagada) {
         try {
-            // Imprimir estructura antes de realizar la actualización
-            System.out.println("==== DIAGNÓSTICO DE LA TABLA FACTURAS ====");
-            facturaRepository.imprimirEstructuraTablaFacturas();
-            System.out.println("========================================");
-            
-            // 1. Obtener la factura actual
-            Factura factura = obtenerFacturaPorId(facturaId);
+            // 1. Verificar que la factura existe
+            Factura factura = facturaRepository.findById(facturaId);
             if (factura == null) {
                 System.err.println("No se pudo actualizar el estado de pago: Factura no encontrada (ID: " + facturaId + ")");
                 return false;
             }
             
-            // 2. Actualizar el estado de pago - esto también establecerá la fecha de pago internamente
-            factura.setPagada(pagada);
-            
-            // 3. Guardar los cambios en la base de datos
-            boolean actualizado = facturaRepository.update(factura);
+            // 2. Actualizar el estado en BD
+            boolean actualizado = facturaRepository.actualizarEstadoPago(facturaId, pagada);
             
             if (actualizado) {
-                System.out.println("Estado de pago actualizado correctamente para factura ID: " + facturaId + 
-                                " - Pagada: " + pagada +
-                                " - Fecha de pago: " + (factura.getFechaPago() != null ? factura.getFechaPago() : "N/A"));
+                System.out.println("Estado de pago actualizado correctamente para factura ID: " + 
+                                   facturaId + " - Pagada: " + pagada + " - Fecha de pago: " + 
+                                   (pagada ? LocalDateTime.now() : "N/A"));
+                return true;
             } else {
-                System.err.println("Error al actualizar estado de pago en la base de datos para factura ID: " + facturaId);
+                System.err.println("Error técnico al actualizar el estado de pago para factura ID: " + facturaId);
+                return false;
             }
-            
-            return actualizado;
-            
         } catch (Exception e) {
-            System.err.println("Error al actualizar estado de pago para factura ID " + facturaId + ": " + e.getMessage());
             e.printStackTrace();
+            System.err.println("Error al actualizar estado de pago: " + e.getMessage());
             return false;
         }
     }

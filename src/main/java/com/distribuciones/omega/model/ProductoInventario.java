@@ -79,6 +79,22 @@ public class ProductoInventario {
     public int getCantidadMaxima() { return cantidadMaxima; }
     public void setCantidadMaxima(int cantidadMaxima) { this.cantidadMaxima = cantidadMaxima; }
 
+        /**
+     * Establece el precio de venta del producto
+     * @param precioVenta Precio de venta
+     */
+    public void setPrecioVenta(double precioVenta) {
+        this.precio = precioVenta;
+    }
+
+    /**
+     * Obtiene el precio de venta del producto
+     * @return Precio de venta
+     */
+    public double getPrecioVenta() {
+        return this.precio;
+    }
+
     @Override
     public String toString() {
         return "ProductoInventario{" +

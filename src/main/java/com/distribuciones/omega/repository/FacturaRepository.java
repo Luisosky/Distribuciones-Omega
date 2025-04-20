@@ -230,25 +230,26 @@ public class FacturaRepository {
      * @return Factura encontrada o null si no existe
      */
     public Factura findById(Long id) {
-        String sql = "SELECT * FROM facturas WHERE id_factura = ?";  // Cambiar 'id' por 'id_factura'
-        
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setLong(1, id);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                Factura factura = mapResultSetToFactura(rs);
-                factura.setItems(findItemsByFacturaId(factura.getId()));
-                return factura;
+             PreparedStatement pstmt = conn.prepareStatement(
+                 "SELECT * FROM facturas WHERE id_factura = ?")) {
+                
+            pstmt.setLong(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Factura factura = mapResultSetToFactura(rs);
+                    // Cargar los items de la factura
+                    cargarItemsFactura(factura);
+                    return factura;
+                }
             }
             
+            return null;
         } catch (SQLException e) {
+            System.err.println("Error al buscar factura por ID: " + e.getMessage());
             e.printStackTrace();
+            return null;
         }
-        
-        return null;
     }
     
     /**
@@ -276,6 +277,52 @@ public class FacturaRepository {
         }
         
         return null;
+    }
+
+        /**
+     * Busca los items de una factura por su ID
+     * @param facturaId ID de la factura
+     * @return Lista de items encontrados
+     */
+    public List<ItemFactura> findItemsByFacturaId(Long facturaId) {
+        List<ItemFactura> items = new ArrayList<>();
+        
+        String sql = "SELECT i.*, p.id_producto, p.nombre " +
+                    "FROM items_factura i " +
+                    "JOIN productos p ON i.producto_id = p.id_producto " +
+                    "WHERE i.factura_id = ?";
+                    
+        try (Connection conn = DBUtil.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                
+            pstmt.setLong(1, facturaId);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ItemFactura item = new ItemFactura();
+                    item.setId(rs.getLong("id"));
+                    item.setFacturaId(facturaId);
+                    
+                    // Crear producto básico con información mínima
+                    ProductoInventario producto = new ProductoInventario();
+                    producto.setIdProducto(rs.getLong("id_producto"));
+                    producto.setDescripcion(rs.getString("nombre"));  // Usando nombre en lugar de descripcion
+                    
+                    item.setProducto(producto);
+                    item.setCantidad(rs.getInt("cantidad"));
+                    item.setPrecioUnitario(rs.getDouble("precio_unitario"));
+                    item.setSubtotal(rs.getDouble("subtotal"));
+                    
+                    items.add(item);
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error al cargar items de factura: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return items;
     }
     
     /**
@@ -365,6 +412,8 @@ public class FacturaRepository {
         return facturas;
     }
 
+    
+
     public void imprimirEstructuraTablaFacturas() {
         try (Connection conn = DBUtil.getConnection()) {
             System.out.println("===== ESTRUCTURA DE LA TABLA FACTURAS =====");
@@ -395,42 +444,52 @@ public class FacturaRepository {
     }
     
     /**
-     * Obtiene los items de una factura
-     * @param facturaId ID de la factura
-     * @return Lista de items de la factura
+     * Carga los items asociados a una factura
+     * @param factura La factura a la que se cargarán los items
      */
-    private List<ItemFactura> findItemsByFacturaId(Long facturaId) {
-        // Verifica que estés usando el nombre correcto de la columna en la tabla items_factura
-        String sql = "SELECT * FROM items_factura WHERE factura_id = ?";
+    private void cargarItemsFactura(Factura factura) {
+        if (factura == null) return;
         
-        List<ItemFactura> items = new ArrayList<>();
-        
+        // Consulta modificada con los campos correctos de la tabla
+        String sql = "SELECT i.*, p.id_producto, p.nombre " +
+                     "FROM items_factura i " +
+                     "JOIN productos p ON i.producto_id = p.id_producto " +
+                     "WHERE i.factura_id = ?";
+                         
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                
+            pstmt.setLong(1, factura.getId());
+            List<ItemFactura> items = new ArrayList<>();
             
-            stmt.setLong(1, facturaId);
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                ItemFactura item = new ItemFactura();
-                item.setId(rs.getLong("id"));
-                
-                Long productoId = rs.getLong("producto_id");
-                ProductoInventario producto = inventarioRepository.findById(productoId);
-                item.setProducto(producto);
-                
-                item.setCantidad(rs.getInt("cantidad"));
-                item.setPrecioUnitario(rs.getDouble("precio_unitario"));
-                item.setSubtotal(rs.getDouble("subtotal"));
-                
-                items.add(item);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ItemFactura item = new ItemFactura();
+                    item.setId(rs.getLong("id"));
+                    item.setFacturaId(factura.getId());
+                    
+                    // Crear producto básico con información mínima
+                    ProductoInventario producto = new ProductoInventario();
+                    producto.setIdProducto(rs.getLong("id_producto"));
+                    // Usamos nombre en vez de descripcion
+                    producto.setDescripcion(rs.getString("nombre"));
+                    
+                    item.setProducto(producto);
+                    item.setCantidad(rs.getInt("cantidad"));
+                    item.setPrecioUnitario(rs.getDouble("precio_unitario"));
+                    item.setSubtotal(rs.getDouble("subtotal"));
+                    
+                    items.add(item);
+                }
             }
             
+            factura.setItems(items);
+            System.out.println("Cargados " + items.size() + " items para la factura ID: " + factura.getId());
+            
         } catch (SQLException e) {
+            System.err.println("Error al cargar items de factura: " + e.getMessage());
             e.printStackTrace();
         }
-        
-        return items;
     }
     
     /**
@@ -614,43 +673,6 @@ public class FacturaRepository {
         return factura;
     }
     
-    /**
-     * Carga los items asociados a una factura
-     * @param factura Factura a la que se cargarán los items
-     */
-    private void cargarItemsFactura(Factura factura) {
-        String sql = "SELECT * FROM items_factura WHERE id_factura = ?";
-        
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setLong(1, factura.getId());
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    ItemFactura item = new ItemFactura();
-                    item.setId(rs.getLong("id_item"));
-                    
-                    // Cargar producto
-                    Long productoId = rs.getLong("id_producto");
-                    ProductoInventario producto = inventarioRepository.findById(productoId);
-                    item.setProducto(producto);
-                    
-                    item.setCantidad(rs.getInt("cantidad"));
-                    item.setPrecioUnitario(rs.getDouble("precio_unitario"));
-                    item.setDescuento(rs.getDouble("descuento"));
-                    item.setSubtotal(rs.getDouble("subtotal"));
-                    
-                    factura.agregarItem(item);
-                }
-            }
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error al cargar items de factura: " + e.getMessage());
-        }
-    }
-
     /**
      * Crea la tabla de facturas si no existe
      */

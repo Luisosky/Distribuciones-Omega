@@ -37,6 +37,26 @@ public class ItemFactura {
 
     public double getDescuento() { return descuento; }
     public void setDescuento(double descuento) { this.descuento = descuento; }
+
+        /**
+     * Establece el ID de la factura a la que pertenece este item
+     * @param facturaId ID de la factura
+     */
+    public void setFacturaId(long facturaId) {
+        // Si la factura no está inicializada, crearla
+        if (this.factura == null) {
+            this.factura = new Factura();
+        }
+        this.factura.setId(facturaId);
+    }
+
+    /**
+     * Obtiene el ID de la factura a la que pertenece este item
+     * @return ID de la factura
+     */
+    public long getFacturaId() {
+        return factura != null ? factura.getId() : 0;
+}
     
     /**
      * Calcula el subtotal del item
