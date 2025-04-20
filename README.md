@@ -79,7 +79,7 @@ Para acceder a la aplicación visite: http://localhost:8080
 - **Contraseña**: root
 - **Base de datos**: omega_db (se crea automáticamente)
 
-Para modificar estos valores, edite el archivo `application.properties`.
+Para modificar estos valores, edite el archivo `.env`.
 
 ### Configuración de correo electrónico
 
@@ -113,7 +113,7 @@ Si encuentra problemas durante la instalación o ejecución:
 1. **Error de Java no encontrado**: Asegúrese de tener Java 17 o superior instalado y en el PATH
 2. **Error de MySQL**: Verifique que MySQL esté instalado y en ejecución
 3. **Error de compilación**: Si compila desde el código fuente, asegúrese de tener Maven instalado
-4. **Error de conexión**: Verifique que los datos de conexión en `application.properties` sean correctos
+4. **Error de conexión**: Verifique que los datos de conexión en `.env` sean correctos
 
 ## Soporte
 
