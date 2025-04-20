@@ -79,7 +79,7 @@ Para acceder a la aplicación visite: http://localhost:8080
 - **Contraseña**: root
 - **Base de datos**: omega_db (se crea automáticamente)
 
-Para modificar estos valores, edite el archivo `application.properties`.
+Para modificar estos valores, edite el archivo `.env`.
 
 ### Configuración de correo electrónico
 
