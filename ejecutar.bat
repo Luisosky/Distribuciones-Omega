@@ -26,6 +26,9 @@ echo.
 echo Iniciando aplicación...
 echo.
 
+REM Crear archivo para ejecutar la aplicación
+echo java -jar app-pos-0.0.1-SNAPSHOT.jar > Distribuciones-Omega-Release\ejecutar.bat
+
 REM Ejecutar la aplicación directamente con Spring Boot
 java -jar target\app-pos-0.0.1-SNAPSHOT.jar
 
