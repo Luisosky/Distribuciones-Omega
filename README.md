@@ -113,7 +113,7 @@ Si encuentra problemas durante la instalación o ejecución:
 1. **Error de Java no encontrado**: Asegúrese de tener Java 17 o superior instalado y en el PATH
 2. **Error de MySQL**: Verifique que MySQL esté instalado y en ejecución
 3. **Error de compilación**: Si compila desde el código fuente, asegúrese de tener Maven instalado
-4. **Error de conexión**: Verifique que los datos de conexión en `application.properties` sean correctos
+4. **Error de conexión**: Verifique que los datos de conexión en `.env` sean correctos
 
 ## Soporte
 
