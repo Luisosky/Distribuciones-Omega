@@ -22,6 +22,8 @@ public class Factura {
     private String motivoAnulacion;
     private LocalDateTime fechaAnulacion;
     private String formaPago;
+    private boolean pagada = false;
+    private LocalDateTime fechaPago;
     
     public Factura() {
         // Constructor vacío necesario para frameworks
@@ -156,6 +158,31 @@ public class Factura {
         this.formaPago = formaPago;
     }
     
+    public boolean isPagada() {
+        return pagada;
+    }
+    
+    public void setPagada(boolean pagada) {
+        this.pagada = pagada;
+        if (pagada) {
+            // Si se marca como pagada, registrar la fecha actual
+            this.fechaPago = LocalDateTime.now();
+        } else {
+            // Si se desmarca, eliminar la fecha de pago
+            this.fechaPago = null;
+        }
+    }
+    
+    public LocalDateTime getFechaPago() {
+        return fechaPago;
+    }
+    
+    public void setFechaPago(LocalDateTime fechaPago) {
+        this.fechaPago = fechaPago;
+        // Si se establece una fecha, se considera como pagada
+        this.pagada = (fechaPago != null);
+    }
+    
     /**
      * Agrega un item a la factura
      */
@@ -176,6 +203,22 @@ public class Factura {
         
         // Calcular total
         total = subtotal - descuento + iva;
+    }
+    
+    /**
+     * Convierte los ItemFactura en DetalleFactura para uso en NotaEntrega
+     * @return Lista de DetalleFactura
+     */
+    public List<DetalleFactura> getDetalles() {
+        List<DetalleFactura> detalles = new ArrayList<>();
+        for (ItemFactura item : this.items) {
+            DetalleFactura detalle = new DetalleFactura();
+            detalle.setCodigo(item.getProducto().getCodigo());
+            detalle.setDescripcion(item.getProducto().getDescripcion());
+            detalle.setCantidad(item.getCantidad());
+            detalles.add(detalle);
+        }
+        return detalles;
     }
     
     @Override

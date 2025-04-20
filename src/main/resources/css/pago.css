@@ -1,0 +1,123 @@
+/* Estilos generales */
+.root {
+    -fx-font-family: 'Segoe UI', Arial, sans-serif;
+    -fx-background-color: #f5f5f7;
+}
+
+/* Estilos para los títulos */
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.subtitle-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+/* Estilos para las etiquetas de valor */
+.value-label {
+    -fx-font-weight: normal;
+    -fx-text-fill: #0056b3;
+}
+
+/* Estilos para los campos de texto y combobox */
+.text-field, .combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 4px;
+    -fx-padding: 5px;
+}
+
+.text-field:focused, .combo-box:focused {
+    -fx-border-color: #4285f4;
+    -fx-effect: dropshadow(gaussian, rgba(66, 133, 244, 0.3), 3, 0, 0, 0);
+}
+
+/* Estilos para el área de texto resumen */
+.text-area {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 4px;
+}
+
+.text-area .content {
+    -fx-background-color: white;
+}
+
+.text-area:focused {
+    -fx-border-color: #4285f4;
+}
+
+/* Estilos para separadores */
+.separator .line {
+    -fx-background-color: #dedede;
+    -fx-border-width: 0;
+}
+
+/* Estilos para botones */
+.button {
+    -fx-background-color: #f0f0f0;
+    -fx-text-fill: #333333;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 8px 16px;
+}
+
+.button:hover {
+    -fx-background-color: #e0e0e0;
+}
+
+.button:pressed {
+    -fx-background-color: #d0d0d0;
+}
+
+/* Estilo para el botón principal */
+.primary-button {
+    -fx-background-color: #4285f4;
+    -fx-text-fill: white;
+    -fx-border-color: #3367d6;
+}
+
+.primary-button:hover {
+    -fx-background-color: #3367d6;
+}
+
+.primary-button:pressed {
+    -fx-background-color: #2a56c6;
+}
+
+/* Estilo para el botón deshabilitado */
+.button:disabled {
+    -fx-opacity: 0.6;
+}
+
+/* Estilo para etiqueta de cambio */
+.cambio-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c7be5;
+}
+
+/* Estilos para totales */
+.total-label {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.total-value {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: #0056b3;
+}
+
+/* Estilo para la información de pago */
+.gridpane {
+    -fx-background-color: white;
+    -fx-background-radius: 6px;
+    -fx-border-color: #dedede;
+    -fx-border-radius: 6px;
+    -fx-padding: 10px;
+}

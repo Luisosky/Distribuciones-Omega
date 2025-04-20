@@ -1,0 +1,185 @@
+/* Estilos generales */
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-size: 12px;
+    -fx-background-color: #f5f5f5;
+}
+
+/* Título de la ventana */
+.titulo-ventana {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Estilo para paneles de detalle */
+.panel-detalle {
+    -fx-background-color: white;
+    -fx-background-radius: 5px;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 5px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);
+}
+
+/* Título de la empresa */
+.titulo-empresa {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3498db;
+}
+
+/* Número de factura */
+.numero-factura {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e74c3c;
+    -fx-padding: 5px 0 0 0;
+}
+
+/* Subtítulos de secciones */
+.subtitulo-seccion {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+    -fx-border-color: transparent transparent #ddd transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 3 0;
+}
+
+/* Valores de campos */
+.valor-campo {
+    -fx-font-weight: normal;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Etiquetas destacadas */
+.etiqueta-campo-destacado {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Valor total */
+.valor-total {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #27ae60;
+}
+
+/* Tabla de items */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 3px;
+}
+
+.table-view .column-header {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-row-cell {
+    -fx-border-color: transparent transparent #eee transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: #f9f9f9;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #e0f2f7;
+    -fx-text-fill: #2c3e50;
+}
+
+/* WebView */
+.web-view {
+    -fx-border-color: #ddd;
+    -fx-border-radius: 3px;
+}
+
+/* Botones */
+.button {
+    -fx-font-weight: bold;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+}
+
+.btn-primary {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #2980b9;
+}
+
+.btn-secundary {
+    -fx-background-color: #f2f2f2;
+    -fx-text-fill: #333;
+    -fx-border-color: #ddd;
+}
+
+.btn-secundary:hover {
+    -fx-background-color: #e6e6e6;
+}
+
+.btn-cancel {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}
+
+.btn-cancel:hover {
+    -fx-background-color: #c0392b;
+}
+
+/* Tabs */
+.tab-pane {
+    -fx-tab-min-width: 120px;
+}
+
+.tab {
+    -fx-background-color: #f2f2f2;
+    -fx-padding: 5px 20px;
+}
+
+.tab:selected {
+    -fx-background-color: white;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.tab .tab-label {
+    -fx-text-fill: #555;
+    -fx-font-weight: bold;
+}
+
+.tab:selected .tab-label {
+    -fx-text-fill: #3498db;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #e6e6e6;
+}
+
+/* Estado de la factura */
+.estado-pagado {
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: bold;
+}
+
+.estado-pendiente {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}
+
+.estado-anulado {
+    -fx-text-fill: #95a5a6;
+    -fx-font-weight: bold;
+    -fx-strikethrough: true;
+}

@@ -1,6 +1,7 @@
 package com.distribuciones.omega.controllers;
 
 import com.distribuciones.omega.model.Usuario;
+import com.distribuciones.omega.model.Factura;
 import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -117,16 +118,16 @@ public class DashboardController {
         btnProductos.setOnAction(e -> loadView("productos-gestion.fxml"));
         btnInventario.setOnAction(e -> loadView("gestion.fxml"));
         btnCotizacion.setOnAction(e -> loadView("cotizacion.fxml"));
-        btnVentas.setOnAction(e -> loadView("ventas-gestion.fxml"));
-        btnReportes.setOnAction(e -> loadView("reportes-gestion.fxml"));
+        btnVentas.setOnAction(e -> loadView("pago.fxml"));
+        btnReportes.setOnAction(e -> loadView("reporte-facturacion.fxml"));
 
         // Configurar acciones para los botones del menú contraído (mismas acciones)
         btnClientesCollapsed.setOnAction(e -> loadView("clientes-gestion.fxml"));
         btnProductosCollapsed.setOnAction(e -> loadView("productos-gestion.fxml"));
         btnInventarioCollapsed.setOnAction(e -> loadView("gestion.fxml"));
         btnCotizacionCollapsed.setOnAction(e -> loadView("cotizacion.fxml"));
-        btnVentasCollapsed.setOnAction(e -> loadView("ventas-gestion.fxml"));
-        btnReportesCollapsed.setOnAction(e -> loadView("reportes-gestion.fxml"));
+        btnVentasCollapsed.setOnAction(e -> loadView("pago.fxml"));
+        btnReportesCollapsed.setOnAction(e -> loadView("reporte-facturacion.fxml"));
 
         // Configurar acción para el menú de configuración de alertas
         if (menuConfiguracionAlertas != null) {
@@ -250,6 +251,9 @@ public class DashboardController {
             AnchorPane.setRightAnchor(view, 0.0);
         } catch (IOException ex) {
             ex.printStackTrace();
+            AlertUtils.mostrarError("Error de carga", 
+                "No se pudo cargar la vista: " + fxmlFile + "\n" + 
+                "Detalles: " + ex.getMessage());
         }
     }
     
@@ -270,6 +274,45 @@ public class DashboardController {
         } catch (IOException e) {
             e.printStackTrace();
             AlertUtils.mostrarError("Error", "No se pudo abrir la ventana de configuración: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Método para cargar la pantalla de pago
+     * @param factura La factura a pagar
+     */
+    private void cargarPantallaPago(Factura factura) {
+        try {
+            // Cargar el FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/pago.fxml"));
+            Parent root = loader.load();
+            
+            // Obtener el controlador
+            PagoController pagoController = loader.getController();
+            
+            // Inicializar datos en el controlador
+            pagoController.inicializarDatos(factura);
+            
+            // Crear una nueva escena y aplicar el CSS
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(getClass().getResource("/css/pago.css").toExternalForm());
+            
+            // Configurar el Stage
+            Stage stage = new Stage();
+            stage.setTitle("Pago de Factura");
+            stage.setScene(scene);
+            stage.setResizable(false);
+            
+            // Mostrar la ventana de forma modal
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+            
+            // Actualizar la vista principal si es necesario después de cerrar el diálogo
+            // actualizarVistaFacturas();
+            
+        } catch (IOException e) {
+            AlertUtils.mostrarError("Error", "No se pudo cargar la pantalla de pago: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

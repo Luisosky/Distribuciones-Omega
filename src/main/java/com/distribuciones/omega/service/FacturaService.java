@@ -73,55 +73,178 @@ public class FacturaService {
     
     /**
      * Genera una factura a partir de una cotización
-     * @param cotizacion Cotización a partir de la cual se generará la factura
-     * @return Factura generada o null si hubo un error
+     * @param cotizacion La cotización de origen
+     * @return La factura generada
+     * @throws Exception Si ocurre algún error durante el proceso
      */
-    public Factura generarFacturaDesdeContizacion(Cotizacion cotizacion) {
+    public Factura generarFacturaDesdeContizacion(Cotizacion cotizacion) throws Exception {
         if (cotizacion == null) {
-            return null;
+            throw new IllegalArgumentException("La cotización no puede ser nula");
         }
         
-        // Verificar que la cotización no esté ya convertida a orden/factura
-        if (cotizacion.isConvertidaAOrden()) {
-            return null;
+        if (cotizacion.getItems() == null || cotizacion.getItems().isEmpty()) {
+            throw new IllegalArgumentException("La cotización no tiene items");
         }
         
-        // Crear nueva factura
-        Factura factura = new Factura();
-        factura.setNumeroFactura(NumeroFacturaGenerator.generarNumeroFactura());
-        factura.setCliente(cotizacion.getCliente());
-        factura.setVendedor(cotizacion.getVendedor());
-        factura.setFecha(LocalDateTime.now());
-        factura.setCotizacionId(cotizacion.getId());
-        factura.setSubtotal(cotizacion.getSubtotal());
-        factura.setDescuento(cotizacion.getDescuento());
-        factura.setIva(cotizacion.getIva());
-        factura.setTotal(cotizacion.getTotal());
-        
-        // Copiar items desde la cotización
-        List<ItemFactura> itemsFactura = new ArrayList<>();
-        for (ItemCotizacion itemCotizacion : cotizacion.getItems()) {
-            ItemFactura itemFactura = new ItemFactura();
-            itemFactura.setProducto(itemCotizacion.getProducto());
-            itemFactura.setCantidad(itemCotizacion.getCantidad());
-            itemFactura.setPrecioUnitario(itemCotizacion.getPrecioUnitario());
-            itemFactura.setDescuento(itemCotizacion.getDescuento());
-            itemFactura.setSubtotal(itemCotizacion.getSubtotal());
-            itemsFactura.add(itemFactura);
+        try {
+            // 1. Crear la factura con datos de la cotización
+            Factura factura = new Factura();
+            
+            // Asignar cliente, vendedor, fecha, totales, etc.
+            factura.setCliente(cotizacion.getCliente());
+            factura.setVendedor(cotizacion.getVendedor());
+            factura.setFecha(LocalDateTime.now());
+            factura.setOrdenId(cotizacion.getId()); // Referencia a la cotización
+            factura.setSubtotal(cotizacion.getSubtotal());
+            factura.setDescuento(cotizacion.getDescuento());
+            factura.setIva(cotizacion.getIva());
+            factura.setTotal(cotizacion.getTotal());
+            factura.setAnulada(false);
+            factura.setFormaPago("EFECTIVO"); // Valor predeterminado
+            factura.setPagada(false);
+            
+            // 2. Generar número de factura
+            String numeroFactura = generarNumeroFactura();
+            factura.setNumeroFactura(numeroFactura);
+            
+            // 3. Guardar la factura en la base de datos
+            factura = facturaRepository.save(factura);
+            
+            if (factura == null || factura.getId() == 0) {
+                throw new Exception("Error al guardar la factura en la base de datos");
+            }
+            
+            // 4. Copiar items de la cotización a la factura
+            boolean itemsGuardados = copiarItemsCotizacionAFactura(cotizacion, factura);
+            
+            if (!itemsGuardados) {
+                throw new Exception("Error al guardar los items de la factura");
+            }
+            
+            return factura;
+        } catch (Exception e) {
+            System.err.println("Error al generar factura desde cotización: " + e.getMessage());
+            e.printStackTrace();
+            throw new Exception("No se pudo generar la factura: " + e.getMessage(), e);
         }
-        factura.setItems(itemsFactura);
-        
-        // Guardar factura
-        Factura facturaGuardada = facturaRepository.save(factura);
-        
-        // Marcar la cotización como convertida a factura
-        if (facturaGuardada != null) {
-            cotizacion.setConvertidaAOrden(true);
-            cotizacionService.actualizarCotizacion(cotizacion);
-        }
-        
-        return facturaGuardada;
     }
+
+    /**
+     * Genera un número de factura único
+     * @return Número de factura generado
+     */
+    private String generarNumeroFactura() {
+        // Formato: FACT-YYYYMMDD-XXXX donde XXXX es un número secuencial
+        LocalDateTime now = LocalDateTime.now();
+        String fecha = String.format("%04d%02d%02d", now.getYear(), now.getMonthValue(), now.getDayOfMonth());
+        
+        try {
+            // Obtener el último número de factura del día
+            String ultimoNumero = facturaRepository.obtenerUltimoNumeroFactura(fecha);
+            
+            int secuencia = 1;
+            if (ultimoNumero != null && !ultimoNumero.isEmpty()) {
+                try {
+                    // Extraer el número secuencial del formato FACT-YYYYMMDD-XXXX
+                    String[] partes = ultimoNumero.split("-");
+                    if (partes.length == 3) {
+                        secuencia = Integer.parseInt(partes[2]) + 1;
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("Error al parsear número de secuencia: " + e.getMessage());
+                    // Si hay error, usar una secuencia basada en el tiempo como respaldo
+                    secuencia = (int)(System.currentTimeMillis() % 10000);
+                }
+            }
+            
+            return String.format("FACT-%s-%04d", fecha, secuencia);
+        } catch (Exception e) {
+            System.err.println("Error al generar número de factura: " + e.getMessage());
+            // En caso de error, usar timestamp como secuencia
+            return String.format("FACT-%s-%04d", fecha, (int)(System.currentTimeMillis() % 10000));
+        }
+    }
+
+    /**
+     * Actualiza el estado de pago de una factura
+     * @param facturaId ID de la factura
+     * @param pagada Indica si la factura está pagada (true) o no (false)
+     * @return true si la actualización fue exitosa
+     */
+    public boolean actualizarEstadoPago(Long facturaId, boolean pagada) {
+        try {
+            // Imprimir estructura antes de realizar la actualización
+            System.out.println("==== DIAGNÓSTICO DE LA TABLA FACTURAS ====");
+            facturaRepository.imprimirEstructuraTablaFacturas();
+            System.out.println("========================================");
+            
+            // 1. Obtener la factura actual
+            Factura factura = obtenerFacturaPorId(facturaId);
+            if (factura == null) {
+                System.err.println("No se pudo actualizar el estado de pago: Factura no encontrada (ID: " + facturaId + ")");
+                return false;
+            }
+            
+            // 2. Actualizar el estado de pago - esto también establecerá la fecha de pago internamente
+            factura.setPagada(pagada);
+            
+            // 3. Guardar los cambios en la base de datos
+            boolean actualizado = facturaRepository.update(factura);
+            
+            if (actualizado) {
+                System.out.println("Estado de pago actualizado correctamente para factura ID: " + facturaId + 
+                                " - Pagada: " + pagada +
+                                " - Fecha de pago: " + (factura.getFechaPago() != null ? factura.getFechaPago() : "N/A"));
+            } else {
+                System.err.println("Error al actualizar estado de pago en la base de datos para factura ID: " + facturaId);
+            }
+            
+            return actualizado;
+            
+        } catch (Exception e) {
+            System.err.println("Error al actualizar estado de pago para factura ID " + facturaId + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Copia los items de una cotización a una factura
+     * @param cotizacion Cotización origen
+     * @param factura Factura destino
+     * @return true si los items se copiaron exitosamente
+     */
+    private boolean copiarItemsCotizacionAFactura(Cotizacion cotizacion, Factura factura) {
+        try {
+            for (ItemCotizacion itemCotizacion : cotizacion.getItems()) {
+                ItemFactura itemFactura = new ItemFactura();
+                
+                // Asignar factura al item
+                // Usar método agregador en lugar de setter si está disponible
+                factura.agregarItem(itemFactura);
+                
+                // O si prefieres usar el setter, asegúrate de que esté definido:
+                // itemFactura.setFactura(factura);
+                
+                itemFactura.setProducto(itemCotizacion.getProducto());
+                itemFactura.setCantidad(itemCotizacion.getCantidad());
+                itemFactura.setPrecioUnitario(itemCotizacion.getPrecioUnitario());
+                itemFactura.setSubtotal(itemCotizacion.getSubtotal());
+                
+                // Si prefieres hacer el guardado directo en lugar de usar factura.agregarItem:
+                // boolean guardado = facturaRepository.guardarItemFactura(itemFactura);
+                // if (!guardado) {
+                //     return false;
+                // }
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error al copiar items de cotización a factura: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     
     /**
      * Busca una factura por su ID
@@ -167,6 +290,27 @@ public class FacturaService {
      */
     public List<Factura> obtenerFacturasPorRangoFechas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         return facturaRepository.findByFechaBetween(fechaInicio, fechaFin);
+    }
+    
+    /**
+     * Obtiene las facturas filtradas por vendedor y rango de fechas
+     * @param vendedorId ID del vendedor
+     * @param fechaInicio Fecha inicio del rango
+     * @param fechaFin Fecha fin del rango
+     * @return Lista de facturas que cumplen con los criterios
+     */
+    public List<Factura> obtenerFacturasPorVendedorYRango(Long vendedorId, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return facturaRepository.buscarFacturasPorVendedorYRango(vendedorId, fechaInicio, fechaFin);
+    }
+    
+    /**
+     * Obtiene las facturas filtradas por rango de fechas
+     * @param fechaInicio Fecha inicio del rango
+     * @param fechaFin Fecha fin del rango
+     * @return Lista de facturas que cumplen con los criterios
+     */
+    public List<Factura> obtenerFacturasPorRango(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return facturaRepository.buscarFacturasPorRango(fechaInicio, fechaFin);
     }
     
     /**

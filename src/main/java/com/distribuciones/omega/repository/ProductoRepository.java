@@ -16,58 +16,116 @@ public class ProductoRepository {
      * Inicializa la tabla si no existe
      */
     public void createTableIfNotExists() {
-        try (Connection conn = DBUtil.getConnection();
-             Statement stmt = conn.createStatement()) {
+        // CHECK FIRST if tables already exist before doing anything
+        try (Connection conn = DBUtil.getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
             
-            // Tabla base de productos
-            String sqlProductos = "CREATE TABLE IF NOT EXISTS productos (" +
-                             "id VARCHAR(20) PRIMARY KEY, " +
-                             "nombre VARCHAR(100) NOT NULL, " +
-                             "precio DOUBLE NOT NULL, " +
-                             "cantidad INT NOT NULL, " +
-                             "categoria VARCHAR(50) NOT NULL, " +
-                             "tipo_producto VARCHAR(50) NOT NULL" +
-                             ")";
+            // Check if all required tables exist
+            boolean productosExists = false;
+            boolean insumosExists = false;
+            boolean mobiliariosExists = false;
+            boolean tecnologicosExists = false;
             
-            // Tabla para InsumoOficina
-            String sqlInsumos = "CREATE TABLE IF NOT EXISTS insumos_oficina (" +
-                             "producto_id VARCHAR(20) PRIMARY KEY, " +
-                             "presentacion VARCHAR(50), " +
-                             "tipo_papel VARCHAR(50), " +
-                             "cantidad_por_paquete INT, " +
-                             "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
-                             ")";
+            try (ResultSet tables = metaData.getTables(null, null, "productos", null)) {
+                productosExists = tables.next();
+            }
+            try (ResultSet tables = metaData.getTables(null, null, "insumos_oficina", null)) {
+                insumosExists = tables.next();
+            }
+            try (ResultSet tables = metaData.getTables(null, null, "productos_mobiliarios", null)) {
+                mobiliariosExists = tables.next();
+            }
+            try (ResultSet tables = metaData.getTables(null, null, "productos_tecnologicos", null)) {
+                tecnologicosExists = tables.next();
+            }
             
-            // Tabla para ProductoMobiliario
-            String sqlMobiliarios = "CREATE TABLE IF NOT EXISTS productos_mobiliarios (" +
-                             "producto_id VARCHAR(20) PRIMARY KEY, " +
-                             "tipo_mobiliario VARCHAR(50), " +
-                             "material VARCHAR(50), " +
-                             "color VARCHAR(50), " +
-                             "dimensiones VARCHAR(50), " +
-                             "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
-                             ")";
+            // If ALL tables exist, don't do anything
+            if (productosExists && insumosExists && mobiliariosExists && tecnologicosExists) {
+                System.out.println("Todas las tablas de productos ya existen. NO se recrearán.");
+                return;
+            }
             
-            // Tabla para ProductoTecnologico
-            String sqlTecnologicos = "CREATE TABLE IF NOT EXISTS productos_tecnologicos (" +
-                             "producto_id VARCHAR(20) PRIMARY KEY, " +
-                             "marca VARCHAR(50), " +
-                             "modelo VARCHAR(50), " +
-                             "numero_serie VARCHAR(50), " +
-                             "garantia_meses INT, " +
-                             "especificaciones_tecnicas TEXT, " +
-                             "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
-                             ")";
+            // Only create tables if one or more are missing
+            conn.setAutoCommit(false);
             
-            // Ejecutar todas las creaciones de tablas
-            stmt.executeUpdate(sqlProductos);
-            stmt.executeUpdate(sqlInsumos);
-            stmt.executeUpdate(sqlMobiliarios);
-            stmt.executeUpdate(sqlTecnologicos);
-            
+            try (Statement stmt = conn.createStatement()) {
+                // The rest of your creation code...
+                
+                // IMPORTANT: Only drop tables if they don't exist correctly
+                if (!productosExists || !insumosExists || !mobiliariosExists || !tecnologicosExists) {
+                    // Disable foreign key checks
+                    stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=0");
+                    
+                    // Only drop what exists
+                    if (tecnologicosExists) stmt.executeUpdate("DROP TABLE IF EXISTS productos_tecnologicos");
+                    if (mobiliariosExists) stmt.executeUpdate("DROP TABLE IF EXISTS productos_mobiliarios");
+                    if (insumosExists) stmt.executeUpdate("DROP TABLE IF EXISTS insumos_oficina");
+                    if (productosExists) stmt.executeUpdate("DROP TABLE IF EXISTS productos");
+                    
+                    System.out.println("Recreando tablas que faltan o están incorrectas");
+                    
+                    // Create tables...
+                    String sqlProductos = "CREATE TABLE productos (" +
+                                     "id VARCHAR(20) PRIMARY KEY, " +
+                                     "id_producto VARCHAR(20), " +
+                                     "nombre VARCHAR(100) NOT NULL, " +
+                                     "precio DOUBLE NOT NULL, " +
+                                     "cantidad INT NOT NULL, " +
+                                     "categoria VARCHAR(50) NOT NULL, " +
+                                     "tipo_producto VARCHAR(50) NOT NULL" +
+                                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    
+                    stmt.executeUpdate(sqlProductos);
+                    System.out.println("Tabla 'productos' creada con éxito");
+                    
+                    String sqlInsumos = "CREATE TABLE insumos_oficina (" +
+                                     "producto_id VARCHAR(20) PRIMARY KEY, " +
+                                     "presentacion VARCHAR(50), " +
+                                     "tipo_papel VARCHAR(50), " +
+                                     "cantidad_por_paquete INT, " +
+                                     "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
+                                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    
+                    stmt.executeUpdate(sqlInsumos);
+                    System.out.println("Tabla 'insumos_oficina' creada con éxito");
+                    
+                    String sqlMobiliarios = "CREATE TABLE productos_mobiliarios (" +
+                                     "producto_id VARCHAR(20) PRIMARY KEY, " +
+                                     "tipo_mobiliario VARCHAR(50), " +
+                                     "material VARCHAR(50), " +
+                                     "color VARCHAR(50), " +
+                                     "dimensiones VARCHAR(50), " +
+                                     "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
+                                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    
+                    stmt.executeUpdate(sqlMobiliarios);
+                    System.out.println("Tabla 'productos_mobiliarios' creada con éxito");
+                    
+                    String sqlTecnologicos = "CREATE TABLE productos_tecnologicos (" +
+                                     "producto_id VARCHAR(20) PRIMARY KEY, " +
+                                     "marca VARCHAR(50), " +
+                                     "modelo VARCHAR(50), " +
+                                     "numero_serie VARCHAR(50), " +
+                                     "garantia_meses INT, " +
+                                     "especificaciones_tecnicas TEXT, " +
+                                     "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
+                                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    
+                    stmt.executeUpdate(sqlTecnologicos);
+                    System.out.println("Tabla 'productos_tecnologicos' creada con éxito");
+                }
+                
+                // Re-enable foreign key checks
+                stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=1");
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error al crear las tablas de productos", e);
+            throw new RuntimeException("Error al verificar o crear las tablas de productos", e);
         }
     }
     
@@ -413,19 +471,34 @@ public class ProductoRepository {
     public List<Producto> findAll() {
         List<Producto> productos = new ArrayList<>();
         
-        try (Connection conn = DBUtil.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id FROM productos")) {
-            
-            while (rs.next()) {
-                String id = rs.getString("id");
-                // Usar findById que ya maneja los JOINs correctamente
-                Producto producto = findById(id);
-                if (producto != null) {
-                    productos.add(producto);
+        try (Connection conn = DBUtil.getConnection()) {
+            // Debug: Print number of rows in productos table
+            try (Statement countStmt = conn.createStatement();
+                 ResultSet countRs = countStmt.executeQuery("SELECT COUNT(*) as count FROM productos")) {
+                if (countRs.next()) {
+                    System.out.println("DEBUG: Productos count in database: " + countRs.getInt("count"));
                 }
             }
             
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT id FROM productos")) {
+                
+                System.out.println("DEBUG: Retrieving products from database...");
+                while (rs.next()) {
+                    String id = rs.getString("id");
+                    System.out.println("DEBUG: Found product ID: " + id);
+                    // Usar findById que ya maneja los JOINs correctamente
+                    Producto producto = findById(id);
+                    if (producto != null) {
+                        productos.add(producto);
+                        System.out.println("DEBUG: Added product: " + producto.getNombre());
+                    } else {
+                        System.out.println("DEBUG: Product with ID " + id + " could not be fully loaded");
+                    }
+                }
+                
+                System.out.println("DEBUG: Total products retrieved: " + productos.size());
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException("Error al obtener todos los productos", e);

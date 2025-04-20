@@ -25,6 +25,8 @@ import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,6 +72,8 @@ public class CotizacionController {
     @FXML private Label lblIva;
     @FXML private Label lblTotal;
     @FXML private TextArea txtObservaciones;
+    @FXML private Button btnGuardar;
+    @FXML private Button btnGuardarYFacturar;
     
     // Servicios
     private final ClienteService clienteService = new ClienteService();
@@ -893,7 +897,7 @@ public class CotizacionController {
                     "No se pudo guardar la cotización: " + e.getMessage());
         }
     }
-    
+ 
     /**
      * Guarda la cotización y genera una factura
      */
@@ -904,46 +908,202 @@ public class CotizacionController {
         }
         
         try {
-            // Primero guardar la cotización
+            // 1. Crear y guardar la cotización
             Cotizacion cotizacion = crearCotizacion();
             cotizacion = cotizacionService.guardarCotizacion(cotizacion);
             
-            // Marcar como convertida a orden/factura
+            // 2. Actualizar la cotización como convertida a orden
             cotizacion.setConvertidaAOrden(true);
             cotizacionService.actualizarCotizacion(cotizacion);
             
-            // Verificar stock suficiente para todos los items
+            // 3. Verificar disponibilidad de stock para todos los productos
+            boolean stockSuficiente = true;
+            StringBuilder mensajeError = new StringBuilder("No hay suficiente stock para los productos:\n");
+            
             for (ItemCotizacion item : cotizacion.getItems()) {
-                if (!inventarioService.verificarDisponibilidad(
-                        item.getProducto().getCodigo(), item.getCantidad())) {
-                    AlertUtils.mostrarError("Stock insuficiente", 
-                            "No hay suficiente stock para el producto: " + 
-                                    item.getProducto().getDescripcion());
-                    return;
+                ProductoInventario producto = item.getProducto();
+                
+                // Debug mejorado para claridad
+                System.out.println("Verificando producto: " + producto.getDescripcion() + 
+                                " (ID: " + producto.getIdProducto() + 
+                                ", Código: " + producto.getCodigo() + 
+                                ", Stock actual: " + producto.getStock() + 
+                                ", Solicitado: " + item.getCantidad() + ")");
+                
+                // Validar disponibilidad usando ambos identificadores para mayor seguridad
+                if (!inventarioService.verificarDisponibilidad(producto, item.getCantidad())) {
+                    stockSuficiente = false;
+                    mensajeError.append("- ").append(producto.getDescripcion())
+                            .append(" (Solicitado: ").append(item.getCantidad())
+                            .append(", Disponible: ").append(producto.getStock()).append(")\n");
                 }
             }
             
-            // Generar la factura a partir de la cotización
-            Factura factura = facturaService.generarFacturaDesdeContizacion(cotizacion);
-            
-            // Actualizar stock
-            for (ItemCotizacion item : cotizacion.getItems()) {
-                inventarioService.actualizarStockProducto(
-                        item.getProducto().getCodigo(), item.getCantidad());
+            if (!stockSuficiente) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Stock Insuficiente");
+                alert.setHeaderText("No hay suficiente stock");
+                alert.setContentText(mensajeError.toString());
+                alert.showAndWait();
+                return;
             }
             
-            // Registrar movimientos contables
-            registrarMovimientoContable(cotizacion, "COTIZACION");
-            registrarMovimientoContable(factura, "FACTURA");
+            // 4. Generar la factura a partir de la cotización
+            Factura factura = facturaService.generarFacturaDesdeContizacion(cotizacion);
             
-            AlertUtils.mostrarInformacion("Factura Generada", 
-                    "La factura se ha generado exitosamente con el número: " + factura.getNumeroFactura());
+            if (factura == null || factura.getId() == 0) {
+                throw new Exception("No se pudo generar la factura. Verifique los datos e intente nuevamente.");
+            }
             
-            cerrarVentana();
+            // 5. Actualizar stock - Con corrección para usar el objeto producto completo
+            boolean todosActualizados = true;
+            for (ItemCotizacion item : cotizacion.getItems()) {
+                ProductoInventario producto = item.getProducto();
+                
+                // Actualizar usando el objeto producto completo
+                if (!inventarioService.actualizarStockProducto(producto, item.getCantidad())) {
+                    System.err.println("Error al actualizar stock para: " + producto.getDescripcion());
+                    todosActualizados = false;
+                } else {
+                    System.out.println("Stock actualizado correctamente para: " + producto.getDescripcion() + 
+                                    " (Nuevo stock: " + (producto.getStock() - item.getCantidad()) + ")");
+                }
+            }
+            
+            // 6. Mostrar mensaje de factura generada
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Factura Generada");
+            alert.setHeaderText("Operación Exitosa");
+            alert.setContentText("La factura se ha generado exitosamente con el número: " + factura.getNumeroFactura());
+            
+            ButtonType btnProcederPago = new ButtonType("Proceder al Pago");
+            ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+            alert.getButtonTypes().setAll(btnProcederPago, btnCerrar);
+            
+            Optional<ButtonType> result = alert.showAndWait();
+            
+            if (result.isPresent() && result.get() == btnProcederPago) {
+                // 7. Navegar a la pantalla de pago - IMPLEMENTACIÓN CORREGIDA
+                try {
+                    // Cargar el FXML de pago con manejo explícito de errores
+                    FXMLLoader loader = new FXMLLoader();
+                    loader.setLocation(getClass().getResource("/fxml/pago.fxml"));
+                    Parent root = loader.load();
+                    
+                    // Aplicar CSS programáticamente solo si existe
+                    Scene scene = new Scene(root);
+                    try {
+                        String cssPath = "/css/pago.css";
+                        if (getClass().getResource(cssPath) != null) {
+                            scene.getStylesheets().add(getClass().getResource(cssPath).toExternalForm());
+                        }
+                    } catch (Exception cssEx) {
+                        System.err.println("Advertencia: No se pudo cargar el CSS: " + cssEx.getMessage());
+                        // Continuar sin el CSS
+                    }
+                    
+                    // Obtener el controlador y pasarle la factura
+                    PagoController pagoController = loader.getController();
+                    pagoController.inicializarDatos(factura);
+                    
+                    // Crear un nuevo Stage para mostrar la pantalla de pago
+                    Stage pagoStage = new Stage();
+                    pagoStage.setTitle("Pago de Factura");
+                    pagoStage.setScene(scene);
+                    pagoStage.initModality(Modality.APPLICATION_MODAL);
+                    pagoStage.initOwner(txtVendedor.getScene().getWindow());
+                    
+                    // Mostrar y esperar
+                    pagoStage.showAndWait();
+                    
+                    // Al cerrar la ventana de pago, limpiar formulario si el pago fue exitoso
+                    if (factura.isPagada()) {
+                        limpiarFormulario();
+                    }
+                    
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    AlertUtils.mostrarError("Error de navegación", 
+                            "No se pudo abrir la pantalla de pagos: " + e.getMessage());
+                }
+            } else {
+                // 8. Limpiar el formulario si no se va a pagar ahora
+                limpiarFormulario();
+            }
             
         } catch (Exception e) {
-            AlertUtils.mostrarError("Error al facturar", 
-                    "No se pudo generar la factura: " + e.getMessage());
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error al Facturar");
+            alert.setHeaderText("Ha ocurrido un error");
+            alert.setContentText("No se pudo generar la factura: " + e.getMessage());
+            
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            String exceptionText = sw.toString();
+            
+            TextArea textArea = new TextArea(exceptionText);
+            textArea.setEditable(false);
+            textArea.setWrapText(true);
+            textArea.setMaxWidth(Double.MAX_VALUE);
+            textArea.setMaxHeight(Double.MAX_VALUE);
+            
+            alert.getDialogPane().setExpandableContent(textArea);
+            alert.getDialogPane().setExpanded(true);
+            alert.showAndWait();
+        }
+    }
+    
+    /**
+     * Limpia todos los campos del formulario y restaura el estado inicial
+     */
+    private void limpiarFormulario() {
+        try {
+            // 1. Resetear componentes de información general
+            cmbCliente.getSelectionModel().clearSelection();
+            cmbTipoVenta.getSelectionModel().selectFirst(); // Selecciona "Venta al Detalle"
+            dpFecha.setValue(LocalDate.now());
+            
+            // 2. Limpiar búsqueda de productos
+            txtBuscarProducto.clear();
+            chkMostrarSoloDisponibles.setSelected(true); // Valor predeterminado en FXML
+            productosFiltrados.setPredicate(producto -> mostrarProductoSegunStock(producto)); // Aplicar filtro original
+            
+            // 3. Limpiar tabla de detalle de cotización
+            itemsCotizacion.clear();
+            tblDetalleCotizacion.refresh();
+            
+            // 4. Restablecer botones de descuento
+            btnAplicarPromocion.setDisable(promocionesDisponibles.isEmpty());
+            btnAplicarDescuentoMayorista.setDisable(true);
+            btnDescuentoManual.setDisable(true);
+            
+            // 5. Reiniciar totales y etiquetas
+            subtotal = 0.0;
+            descuentoTotal = 0.0;
+            iva = 0.0;
+            total = 0.0;
+            
+            lblSubtotal.setText(currencyFormat.format(0.0));
+            lblDescuentoTotal.setText(currencyFormat.format(0.0));
+            lblIva.setText(currencyFormat.format(0.0));
+            lblTotal.setText(currencyFormat.format(0.0));
+            
+            // 6. Limpiar observaciones
+            txtObservaciones.clear();
+            
+            // 7. Volver a cargar productos para actualizar stock
+            cargarProductos();
+            
+            // 8. Restablecer estado de los botones de acción (opcional)
+            btnGuardar.setDisable(false);
+            btnGuardarYFacturar.setDisable(false);
+            
+            System.out.println("Formulario limpiado correctamente");
+        } catch (Exception e) {
+            System.err.println("Error al limpiar el formulario: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

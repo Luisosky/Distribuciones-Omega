@@ -265,6 +265,43 @@ public class ContabilidadService {
             }
         }
     }
+
+    /**
+     * Registra un ingreso en el sistema contable
+     * 
+     * @param monto Monto del ingreso
+     * @param descripcion Descripción del ingreso
+     * @param tipoIngreso Tipo de ingreso (EFECTIVO, TARJETA_CREDITO, etc.)
+     * @return El movimiento contable registrado
+     */
+    public MovimientoContable registrarIngreso(double monto, String descripcion, String tipoIngreso) {
+        try {
+            // Crear movimiento contable para el ingreso
+            MovimientoContable movimiento = new MovimientoContable();
+            
+            // Datos básicos
+            movimiento.setFecha(LocalDateTime.now());
+            movimiento.setTipoDocumento("INGRESO");
+            movimiento.setNumeroDocumento("ING-" + System.currentTimeMillis()); // Generar número único
+            movimiento.setDescripcion(descripcion);
+            movimiento.setMonto(monto);
+            
+            // Datos específicos
+            movimiento.setTipoMovimiento("DEBITO"); // Los ingresos son débitos (aumentan activo)
+            movimiento.setUsuario("SISTEMA"); // Podría recibir el usuario como parámetro
+            movimiento.setEntidadRelacionada("CAJA");
+            movimiento.setReferencia("Ingreso - " + tipoIngreso);
+            movimiento.setDetalle("Ingreso por " + tipoIngreso + ": " + descripcion + "\nMonto: " + monto);
+            
+            // Registrar en base de datos
+            return movimientoRepository.save(movimiento);
+            
+        } catch (Exception e) {
+            System.err.println("Error al registrar ingreso: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al registrar ingreso en contabilidad: " + e.getMessage(), e);
+        }
+    }
     
     /**
      * Clase interna para manejar resúmenes contables

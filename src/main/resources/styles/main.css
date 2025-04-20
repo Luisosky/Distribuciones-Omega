@@ -1,0 +1,123 @@
+/* Estilos generales */
+.root {
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-font-size: 12px;
+    -fx-background-color: #f5f5f5;
+}
+
+/* Títulos y subtítulos */
+.titulo-ventana {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.subtitulo-seccion {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+/* Paneles */
+.panel-detalle, .panel-metodo-pago {
+    -fx-background-color: white;
+    -fx-background-radius: 5px;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 5px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);
+}
+
+.panel-detalle-pago {
+    -fx-background-color: #f9f9f9;
+    -fx-background-radius: 4px;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 4px;
+    -fx-padding: 15px;
+    -fx-spacing: 10px;
+}
+
+/* Etiquetas y valores */
+.etiqueta-campo {
+    -fx-font-weight: normal;
+    -fx-text-fill: #7f8c8d;
+}
+
+.valor-campo {
+    -fx-font-weight: normal;
+    -fx-text-fill: #2c3e50;
+}
+
+.etiqueta-campo-destacado {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2980b9;
+}
+
+.valor-total {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2980b9;
+    -fx-font-size: 14px;
+}
+
+/* Textos especiales */
+.texto-destacado {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2980b9;
+}
+
+.texto-cambio {
+    -fx-font-weight: bold;
+    -fx-text-fill: #27ae60;
+    -fx-font-size: 14px;
+}
+
+.texto-error {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}
+
+.texto-nota {
+    -fx-font-style: italic;
+    -fx-text-fill: #7f8c8d;
+    -fx-font-size: 11px;
+}
+
+/* Botones */
+.btn-primary {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #2980b9;
+}
+
+.btn-secundary {
+    -fx-background-color: #95a5a6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btn-secundary:hover {
+    -fx-background-color: #7f8c8d;
+}
+
+/* Inputs */
+.text-field, .text-area, .combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 3px;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused {
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(gaussian, rgba(52,152,219,0.2), 3, 0, 0, 1);
+}
+
+/* Para las grillas en paneles de métodos de pago */
+GridPane {
+    -fx-vgap: 10;
+    -fx-hgap: 10;
+}

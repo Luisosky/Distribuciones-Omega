@@ -17,26 +17,49 @@ public class InventarioRepository {
      * Crea la tabla de inventario si no existe
      */
     public void createTableIfNotExists() {
-        String sql = "CREATE TABLE IF NOT EXISTS inventario (" +
-                    "id_inventario BIGINT AUTO_INCREMENT PRIMARY KEY, " +
-                    "producto_id VARCHAR(20) NOT NULL, " +
-                    "stock INT NOT NULL DEFAULT 0, " +
-                    "ubicacion VARCHAR(100), " +
-                    "ultimo_reabastecimiento DATETIME, " +
-                    "stock_minimo INT DEFAULT 5, " +
-                    "stock_maximo INT DEFAULT 100, " +
-                    "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
-                    ")";
-        
-        try (Connection conn = DBUtil.getConnection();
-            Statement stmt = conn.createStatement()) {
+        try (Connection conn = DBUtil.getConnection()) {
+            // Verificar si la tabla ya existe
+            DatabaseMetaData meta = conn.getMetaData();
+            ResultSet rs = meta.getTables(null, null, "inventario", null);
             
-            stmt.executeUpdate(sql);
-            System.out.println("Tabla de inventario creada o verificada correctamente");
-            
+            if (!rs.next()) {
+                // La tabla no existe, crearla
+                System.out.println("Creando tabla 'inventario'...");
+                
+                try (Statement stmt = conn.createStatement()) {
+                    // Desactivar temporalmente la verificación de claves foráneas
+                    stmt.execute("SET FOREIGN_KEY_CHECKS=0");
+                    
+                    String sql = "CREATE TABLE inventario (" +
+                                 "id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                                 "producto_id VARCHAR(20), " +
+                                 "ubicacion VARCHAR(50) DEFAULT 'Almacén General', " +
+                                 "stock_minimo INT DEFAULT 5, " +
+                                 "stock_maximo INT DEFAULT 100, " +
+                                 "ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                                 "INDEX idx_producto_id (producto_id), " +  // Añadir índice mejora rendimiento
+                                 "FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE" +
+                                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    
+                    stmt.executeUpdate(sql);
+                    System.out.println("Tabla 'inventario' creada exitosamente");
+                    
+                    // Insertar datos iniciales desde la tabla productos
+                    String insertSql = "INSERT INTO inventario (producto_id, ubicacion) " +
+                                      "SELECT id, 'Almacén General' FROM productos";
+                    
+                    int filas = stmt.executeUpdate(insertSql);
+                    System.out.println("Se insertaron " + filas + " registros en la tabla inventario");
+                    
+                    // Reactivar la verificación de claves foráneas
+                    stmt.execute("SET FOREIGN_KEY_CHECKS=1");
+                }
+            } else {
+                System.out.println("La tabla 'inventario' ya existe");
+            }
         } catch (SQLException e) {
+            System.err.println("Error al crear tabla 'inventario': " + e.getMessage());
             e.printStackTrace();
-            System.err.println("Error al crear la tabla de inventario: " + e.getMessage());
         }
     }
 
@@ -46,18 +69,53 @@ public class InventarioRepository {
      */
     public List<ProductoInventario> findAll() {
         List<ProductoInventario> productos = new ArrayList<>();
-        String sql = "SELECT * FROM productos WHERE activo = true";
+        
+        System.out.println("DEBUG: InventarioRepository.findAll() - Buscando todos los productos");
+        
+        // Verificar primero si la tabla inventario existe
+        boolean inventarioExists = false;
+        try (Connection conn = DBUtil.getConnection();
+             ResultSet tables = conn.getMetaData().getTables(null, null, "inventario", null)) {
+            inventarioExists = tables.next();
+            System.out.println("¿Tabla inventario existe? " + (inventarioExists ? "SÍ" : "NO"));
+        } catch (SQLException e) {
+            System.err.println("Error al verificar tabla inventario: " + e.getMessage());
+        }
+        
+        // SQL adaptativo dependiendo de si existe la tabla inventario
+        String sql;
+        if (inventarioExists) {
+            sql = "SELECT p.*, " +
+                  "CASE " +
+                  "  WHEN i.producto_id IS NOT NULL THEN i.ubicacion " +
+                  "  ELSE 'Almacén General' " +
+                  "END AS ubicacion " +
+                  "FROM productos p " +
+                  "LEFT JOIN inventario i ON p.id = i.producto_id";
+        } else {
+            // Consulta simplificada sin JOIN que funcionará aunque no exista la tabla inventario
+            sql = "SELECT p.*, 'Almacén General' AS ubicacion FROM productos p";
+        }
         
         try (Connection conn = DBUtil.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
+            System.out.println("Ejecutando consulta para inventario...");
+            
             while (rs.next()) {
-                productos.add(mapResultSetToProducto(rs));
+                ProductoInventario producto = mapResultSetToProducto(rs);
+                productos.add(producto);
+                System.out.println("Producto encontrado: " + producto.getDescripcion() + 
+                                   " (ID: " + producto.getCodigo() + 
+                                   ", Stock: " + producto.getStock() + ")");
             }
+            
+            System.out.println("Total de productos procesados: " + productos.size());
             
         } catch (SQLException e) {
             e.printStackTrace();
+            System.err.println("Error al obtener productos: " + e.getMessage());
         }
         
         return productos;
@@ -65,11 +123,12 @@ public class InventarioRepository {
     
     /**
      * Busca un producto por su código
-     * @param codigo Código único del producto
-     * @return Producto encontrado o null si no existe
+     * @param codigo Código del producto
+     * @return ProductoInventario encontrado o null
      */
     public ProductoInventario findByCodigo(String codigo) {
-        String sql = "SELECT * FROM productos WHERE codigo = ? AND activo = true";
+        // Primero intentamos buscar por la columna id_producto
+        String sql = "SELECT * FROM productos WHERE id_producto = ?";
         
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -81,7 +140,19 @@ public class InventarioRepository {
                 return mapResultSetToProducto(rs);
             }
             
+            // Si no encontramos por id_producto, intentamos con id
+            sql = "SELECT * FROM productos WHERE id = ?";
+            try (PreparedStatement stmt2 = conn.prepareStatement(sql)) {
+                stmt2.setString(1, codigo);
+                ResultSet rs2 = stmt2.executeQuery();
+                
+                if (rs2.next()) {
+                    return mapResultSetToProducto(rs2);
+                }
+            }
+            
         } catch (SQLException e) {
+            System.err.println("Error buscando producto por código: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -112,6 +183,7 @@ public class InventarioRepository {
         
         return null;
     }
+    
     
     /**
      * Guarda un nuevo producto en el inventario
@@ -155,33 +227,100 @@ public class InventarioRepository {
             return null;
         }
     }
-    
+
+    public void imprimirEstructuraTablaProductos() {
+        try (Connection conn = DBUtil.getConnection()) {
+            System.out.println("===== ESTRUCTTURA DE LA TABLA PRODUCTOS =====");
+            
+            // Obtener metadatos de la tabla
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("DESCRIBE productos")) {
+                
+                System.out.println("Columnas en la tabla productos:");
+                while (rs.next()) {
+                    String columnName = rs.getString("Field");
+                    String columnType = rs.getString("Type");
+                    String isNullable = rs.getString("Null");
+                    String key = rs.getString("Key");
+                    String defaultValue = rs.getString("Default");
+                    
+                    System.out.println(columnName + " | " + columnType + " | " + isNullable + " | " + key + " | " + defaultValue);
+                }
+            } catch (SQLException e) {
+                System.out.println("No se pudo ejecutar DESCRIBE. Intentando con metadatos de JDBC...");
+                
+                DatabaseMetaData metaData = conn.getMetaData();
+                ResultSet columns = metaData.getColumns(null, null, "productos", null);
+                
+                System.out.println("Columnas en la tabla productos (via JDBC):");
+                while (columns.next()) {
+                    String columnName = columns.getString("COLUMN_NAME");
+                    String columnType = columns.getString("TYPE_NAME");
+                    int nullable = columns.getInt("NULLABLE");
+                    
+                    System.out.println(columnName + " | " + columnType + " | " + (nullable == 1 ? "YES" : "NO"));
+                }
+            }
+            
+            // Imprimir algunos registros de ejemplo
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT * FROM productos LIMIT 3")) {
+                
+                System.out.println("\nEjemplos de registros:");
+                ResultSetMetaData rsmd = rs.getMetaData();
+                int columnCount = rsmd.getColumnCount();
+                
+                // Nombres de columnas
+                for (int i = 1; i <= columnCount; i++) {
+                    System.out.print(rsmd.getColumnName(i) + "\t");
+                }
+                System.out.println();
+                
+                // Datos
+                while (rs.next()) {
+                    for (int i = 1; i <= columnCount; i++) {
+                        System.out.print(rs.getObject(i) + "\t");
+                    }
+                    System.out.println();
+                }
+            }
+            
+            System.out.println("================================================");
+        } catch (SQLException e) {
+            System.err.println("Error al imprimir estructura de la tabla productos: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     /**
-     * Actualiza un producto existente
-     * @param producto Producto con datos actualizados
+     * Actualiza un producto en el inventario
+     * @param producto Producto a actualizar
      * @return true si la actualización fue exitosa
      */
     public boolean update(ProductoInventario producto) {
-        String sql = "UPDATE productos SET descripcion = ?, precio = ?, cantidad = ?, " + // Cambié 'stock' por 'cantidad'
-                     "numero_serie = ?, categoria = ?, proveedor = ?, activo = ? " +
-                     "WHERE codigo = ?";
-        
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DBUtil.getConnection()) {
+            // Basado en la estructura de tabla que se mostró en el diagnóstico
+            // Usamos 'id' como clave primaria (no 'codigo')
+            String sql = "UPDATE productos SET cantidad = ? WHERE id = ?";
+            System.out.println("Ejecutando consulta: " + sql);
+            System.out.println("Actualizando producto: ID=" + producto.getCodigo() + ", Nuevo stock=" + producto.getStock());
             
-            stmt.setString(1, producto.getDescripcion());
-            stmt.setDouble(2, producto.getPrecio());
-            stmt.setInt(3, producto.getStock()); // Aquí stock se guarda en cantidad
-            stmt.setString(4, producto.getNumeroSerie());
-            stmt.setString(5, producto.getCategoria());
-            stmt.setString(6, producto.getProveedor());
-            stmt.setBoolean(7, producto.isActivo());
-            stmt.setString(8, producto.getCodigo());
-            
-            int affectedRows = stmt.executeUpdate();
-            return affectedRows > 0;
-            
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, producto.getStock());
+                stmt.setString(2, producto.getCodigo()); // Asumiendo que 'codigo' en tu objeto corresponde a 'id' en la BD
+                
+                int filasAfectadas = stmt.executeUpdate();
+                System.out.println("Filas afectadas: " + filasAfectadas);
+                
+                if (filasAfectadas == 0) {
+                    System.err.println("No se encontró el producto con ID=" + producto.getCodigo());
+                    return false;
+                }
+                
+                return filasAfectadas > 0;
+            }
         } catch (SQLException e) {
+            System.err.println("Error al actualizar producto en base de datos: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -269,62 +408,67 @@ public class InventarioRepository {
     private ProductoInventario mapResultSetToProducto(ResultSet rs) throws SQLException {
         ProductoInventario producto = new ProductoInventario();
         
-        // Mapear desde la tabla productos
-        if (hasColumn(rs, "id")) {
-            String id = rs.getString("id");
-            producto.setCodigo(id);
-            // Usar el ID del producto como clave primaria para búsquedas futuras
+        // Intentar obtener los campos según los nombres de columna que pueden existir
+        try {
+            producto.setIdProducto(rs.getLong("id_producto"));
+        } catch (SQLException e) {
+            // Si la columna no existe, intentar con "id"
             try {
-                producto.setIdProducto(Long.parseLong(id));
-            } catch (NumberFormatException e) {
+                producto.setIdProducto(rs.getLong("id"));
+            } catch (SQLException ex) {
+                // Si ninguna columna existe, usar un valor predeterminado
                 producto.setIdProducto(0L);
             }
         }
         
-        if (hasColumn(rs, "nombre")) {
-            producto.setDescripcion(rs.getString("nombre"));
+        // Obtener el resto de campos
+        try {
+            producto.setCodigo(rs.getString("codigo"));
+        } catch (SQLException e) {
+            // Si no hay columna 'codigo', intentar usar 'id' o 'id_producto' como código
+            try {
+                producto.setCodigo(rs.getString("id"));
+            } catch (SQLException ex) {
+                try {
+                    producto.setCodigo(rs.getString("id_producto"));
+                } catch (SQLException e2) {
+                    producto.setCodigo("");
+                }
+            }
         }
         
-        if (hasColumn(rs, "precio")) {
+        try {
+            producto.setDescripcion(rs.getString("descripcion"));
+        } catch (SQLException e) {
+            // Intentar con "nombre"
+            try {
+                producto.setDescripcion(rs.getString("nombre"));
+            } catch (SQLException ex) {
+                producto.setDescripcion("");
+            }
+        }
+        
+        try {
             producto.setPrecio(rs.getDouble("precio"));
+        } catch (SQLException e) {
+            producto.setPrecio(0.0);
         }
         
-        if (hasColumn(rs, "cantidad")) {
-            producto.setStock(rs.getInt("cantidad"));
-        } else if (hasColumn(rs, "stock")) {
+        try {
             producto.setStock(rs.getInt("stock"));
+        } catch (SQLException e) {
+            // Intentar con "cantidad"
+            try {
+                producto.setStock(rs.getInt("cantidad"));
+            } catch (SQLException ex) {
+                producto.setStock(0);
+            }
         }
         
-        if (hasColumn(rs, "categoria")) {
-            producto.setCategoria(rs.getString("categoria"));
-        }
-        
-        if (hasColumn(rs, "tipo_producto")) {
-            producto.setProveedor(rs.getString("tipo_producto"));
-        }
-        
-        if (hasColumn(rs, "activo")) {
-            producto.setActivo(rs.getBoolean("activo"));
-        } else {
-            producto.setActivo(true);
-        }
-        
-        // Datos específicos de inventario (si están presentes)
-        if (hasColumn(rs, "ubicacion")) {
-            producto.setUbicacion(rs.getString("ubicacion"));
-        }
-        
-        if (hasColumn(rs, "stock_minimo")) {
-            producto.setStockMinimo(rs.getInt("stock_minimo"));
-        } else {
-            producto.setStockMinimo(5); // Valor predeterminado
-        }
-        
-        if (hasColumn(rs, "stock_maximo")) {
-            producto.setStockMaximo(rs.getInt("stock_maximo"));
-        } else {
-            producto.setStockMaximo(100); // Valor predeterminado
-        }
+        // Intentar obtener otros campos opcionales
+        try { producto.setCategoria(rs.getString("categoria")); } catch (SQLException e) { }
+        try { producto.setProveedor(rs.getString("proveedor")); } catch (SQLException e) { }
+        try { producto.setActivo(rs.getBoolean("activo")); } catch (SQLException e) { }
         
         return producto;
     }

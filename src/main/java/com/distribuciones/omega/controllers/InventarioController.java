@@ -19,6 +19,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -47,36 +48,47 @@ public class InventarioController {
     private AlertaStockService alertaStockService = new AlertaStockService();
     private ObservableList<ProductoInventario> productosData;
     private FilteredList<ProductoInventario> productosFiltrados;
-    private NumberFormat currencyFormatter;
+    private NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("es", "MX"));
     
     /**
      * Inicializa el controlador
      */
     @FXML
-    public void initialize() {
-        inventarioService = new InventarioService();
-        currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("es", "EC"));
-        
-        // Configurar columnas
-        configureTable();
-        
-        // Cargar datos
-        loadInventario();
-        
-        // Configurar filtro de búsqueda
-        setupSearch();
-        
-        // Mostrar fecha de actualización
-        updateTimestamp();
-        
-        // Verificar stock bajo al iniciar
-        alertaStockService.verificarStockBajo();
+    private void initialize() {
+        try {
+            System.out.println("\n==== Inicializando InventarioController ====");
+            
+            // Inicializar datos - IMPORTANTE: esto primero
+            productosData = FXCollections.observableArrayList();
+            productosFiltrados = new FilteredList<>(productosData);
+            
+            // Inicializar servicio
+            inventarioService = new InventarioService();
+            
+            // Configurar columnas de la tabla
+            configurarColumnas();
+            
+            // Asegurarnos que la tabla tenga sus items asignados
+            tableInventario.setItems(productosFiltrados);
+            
+            // Cargar datos
+            System.out.println("Cargando datos de inventario...");
+            loadInventario();
+            
+            // Configurar búsqueda
+            configurarBusqueda();
+            
+            System.out.println("==== Inicialización de InventarioController completada ====\n");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error en la inicialización del controlador: " + e.getMessage());
+        }
     }
     
     /**
      * Configura las columnas de la tabla
      */
-    private void configureTable() {
+    private void configurarColumnas() {
         colId.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
@@ -102,23 +114,53 @@ public class InventarioController {
      */
     private void loadInventario() {
         try {
-            List<ProductoInventario> productos = inventarioService.obtenerProductosDisponibles();
-            productosData = FXCollections.observableArrayList(productos);
-            productosFiltrados = new FilteredList<>(productosData);
-            tableInventario.setItems(productosFiltrados);
+            System.out.println("Método loadInventario() iniciado");
             
-            // Actualizar estadísticas
-            updateStats();
+            // Obtener datos con manejo de excepciones
+            List<ProductoInventario> productos = new ArrayList<>();
+            try {
+                productos = inventarioService.obtenerProductosDisponibles();
+                System.out.println("Obtenidos " + productos.size() + " productos del servicio");
+            } catch (Exception e) {
+                System.err.println("Error obteniendo productos: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
+            // Limpiar y cargar datos
+            if (productosData != null) {
+                productosData.clear();
+                if (productos != null && !productos.isEmpty()) {
+                    productosData.addAll(productos);
+                    System.out.println("Productos cargados en la lista observable");
+                } else {
+                    System.out.println("ADVERTENCIA: No se encontraron productos en el inventario");
+                }
+                
+                // Verificar tabla
+                System.out.println("Elementos en tableView: " + 
+                    (tableInventario.getItems() != null ? tableInventario.getItems().size() : "null"));
+            } else {
+                System.err.println("ERROR: productosData es null");
+            }
+            
+            // Actualizar estadísticas (protegido contra errores)
+            try {
+                actualizarEstadisticas();
+            } catch (Exception e) {
+                System.err.println("Error actualizando estadísticas: " + e.getMessage());
+            }
+            
+            System.out.println("Carga de inventario finalizada");
         } catch (Exception e) {
             e.printStackTrace();
-            // En una aplicación real, aquí mostrarías un diálogo de error
+            System.err.println("Error al cargar inventario: " + e.getMessage());
         }
     }
     
     /**
      * Configura el filtro de búsqueda
      */
-    private void setupSearch() {
+    private void configurarBusqueda() {
         txtBuscar.textProperty().addListener((observable, oldValue, newValue) -> {
             productosFiltrados.setPredicate(producto -> {
                 // Si el texto está vacío, mostrar todos los productos
@@ -145,14 +187,14 @@ public class InventarioController {
             });
             
             // Actualizar estadísticas con base en los elementos filtrados
-            updateStats();
+            actualizarEstadisticas();
         });
     }
     
     /**
      * Actualiza las estadísticas del inventario
      */
-    private void updateStats() {
+    private void actualizarEstadisticas() {
         int totalProductos = productosFiltrados.size();
         double valorTotal = productosFiltrados.stream()
                 .mapToDouble(p -> p.getPrecio() * p.getStock())
@@ -209,5 +251,11 @@ public class InventarioController {
         } else {
             AlertUtils.mostrarError("Error", "No se pudo actualizar el producto");
         }
+    }
+    
+    @FXML
+    private void handleRecargarDatos() {
+        System.out.println("\n==== Recargando datos manualmente ====");
+        loadInventario();
     }
 }
