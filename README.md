@@ -106,6 +106,16 @@ Si necesita ayuda, puede:
 - Crear un [issue en GitHub](https://github.com/Luisosky/Distribuciones-Omega/issues)
 - Contactar al equipo de soporte en: luisc.calderonc@uqvirtual.edu.co
 
+## Contribuir al proyecto
+
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+
+1. Haz fork del repositorio
+2. Crea una rama para tu funcionalidad (`git checkout -b feature/nueva-funcionalidad`)
+3. Realiza tus cambios y haz commit (`git commit -am 'Añade nueva funcionalidad'`)
+4. Sube los cambios a tu fork (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request
+
 ## Licencia
 
 Este proyecto está disponible bajo la licencia MIT.
