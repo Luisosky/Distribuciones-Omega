@@ -1,4 +1,14 @@
+REM filepath: f:\Project\Java\SW2\Distribuciones-Omega\Distribuciones-Omega-Release\install.bat
 @echo off
+setlocal enabledelayedexpansion
+
+:: Si el script se está ejecutando con doble clic, activar modo de permanencia
+echo %cmdcmdline% | find /i "%~0" >nul
+if not errorlevel 1 set STAY_OPEN=1
+
+:: Título para la ventana
+title Instalador de Distribuciones Omega
+
 :: Instalador para Windows de Distribuciones-Omega
 
 echo Instalando Distribuciones-Omega...
@@ -7,8 +17,7 @@ echo Instalando Distribuciones-Omega...
 java -version >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: Java no esta instalado. Por favor instale Java 17 o superior.
-    pause
-    exit /b 1
+    goto :error
 )
 
 :: Verificar MySQL
@@ -22,8 +31,7 @@ for /f "tokens=3" %%a in ('dir /s /-c "%~dp0" ^| find "bytes"') do set SIZE=%%a
 for /f "tokens=3" %%a in ('dir /-c "%USERPROFILE%\" ^| find "bytes free"') do set FREE=%%a
 if %FREE% LSS %SIZE% (
     echo ERROR: No hay suficiente espacio en disco para instalar la aplicación.
-    pause
-    exit /b 1
+    goto :error
 )
 
 :: Preguntar al usuario dónde quiere instalar
@@ -183,4 +191,19 @@ if not "%EMAIL%"=="" (
     echo Puede configurarlas más tarde editando el archivo .env
 )
 echo.
-pause
+goto :end
+
+:error
+echo.
+echo Ha ocurrido un error durante la instalación. Revise los mensajes anteriores.
+echo Si la ventana se cierra demasiado rápido, intente ejecutar el instalador como administrador
+echo o desde una línea de comandos (cmd).
+echo.
+
+:end
+:: Si se ejecutó con doble clic, mantener abierto
+if defined STAY_OPEN (
+    echo.
+    echo Presione cualquier tecla para cerrar esta ventana...
+    pause >nul
+)
