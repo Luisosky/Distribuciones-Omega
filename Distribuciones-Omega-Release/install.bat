@@ -36,7 +36,63 @@ echo Instalando en %INSTALL_DIR%
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 xcopy /s /e /y .\* "%INSTALL_DIR%\" >nul
 
-:: Crear acceso directo en escritorio - CORREGIDO
+:: Configuración de la base de datos
+echo.
+echo ------------------------------------------------
+echo CONFIGURACION DE LA BASE DE DATOS
+echo ------------------------------------------------
+echo.
+
+set DB_HOST=127.0.0.1
+set DB_PORT=3306
+set DB_NAME=omega
+set DB_USER=root
+set DB_PASS=root
+
+set /p CUSTOM_DB="¿Desea personalizar la configuración de la base de datos? (s/n): "
+if /i "%CUSTOM_DB%"=="s" (
+    set /p DB_HOST="Host de MySQL [%DB_HOST%]: "
+    set /p DB_PORT="Puerto de MySQL [%DB_PORT%]: "
+    set /p DB_NAME="Nombre de la base de datos [%DB_NAME%]: "
+    set /p DB_USER="Usuario de MySQL [%DB_USER%]: "
+    set /p DB_PASS="Contraseña de MySQL [%DB_PASS%]: "
+)
+
+:: Configuración de correo electrónico
+echo.
+echo ------------------------------------------------
+echo CONFIGURACION DE CORREO ELECTRONICO (Opcional)
+echo ------------------------------------------------
+echo.
+echo Esta función permite a la aplicación enviar notificaciones por correo.
+echo Para usar Gmail, necesitará crear una "Contraseña de aplicación":
+echo 1. Vaya a su cuenta de Google: https://myaccount.google.com
+echo 2. En Seguridad, active la verificación en dos pasos
+echo 3. Cree una contraseña de aplicación para "Otra aplicación"
+echo.
+
+set EMAIL=
+set APP_PASS=
+
+set /p USE_EMAIL="¿Desea configurar las notificaciones por correo? (s/n): "
+if /i "%USE_EMAIL%"=="s" (
+    set /p EMAIL="Correo electrónico: "
+    set /p APP_PASS="Contraseña de aplicación: "
+    echo.
+    echo Se ha configurado el correo electrónico para notificaciones.
+) else (
+    echo.
+    echo Las notificaciones por correo electrónico no estarán disponibles.
+)
+
+:: Crear archivo .env
+echo DB_URL=jdbc:mysql://%DB_HOST%:%DB_PORT%/%DB_NAME% > "%INSTALL_DIR%\.env"
+echo DB_USER=%DB_USER% >> "%INSTALL_DIR%\.env"
+echo DB_PASS=%DB_PASS% >> "%INSTALL_DIR%\.env"
+echo EMAIL=%EMAIL% >> "%INSTALL_DIR%\.env"
+echo APP_PASS=%APP_PASS% >> "%INSTALL_DIR%\.env"
+
+:: Crear acceso directo en escritorio
 echo Set oWS = WScript.CreateObject("WScript.Shell") > "%TEMP%\CreateShortcut.vbs"
 echo Set FSO = CreateObject("Scripting.FileSystemObject") >> "%TEMP%\CreateShortcut.vbs"
 echo sLinkFile = "%USERPROFILE%\Desktop\Distribuciones Omega.lnk" >> "%TEMP%\CreateShortcut.vbs"
@@ -110,8 +166,21 @@ if not exist "%INSTALL_DIR%\ejecutar.bat" (
 )
 
 echo.
-echo Instalacion completada! Puede encontrar accesos directos en:
+echo Instalación completada exitosamente!
+echo.
+echo Puede encontrar accesos directos en:
 echo - Escritorio
 echo - Menú de inicio
+echo.
+echo Base de datos configurada:
+echo - Host: %DB_HOST%:%DB_PORT%
+echo - Base de datos: %DB_NAME%
+echo.
+if not "%EMAIL%"=="" (
+    echo Correo electrónico configurado: %EMAIL%
+) else (
+    echo Notificaciones por correo no configuradas.
+    echo Puede configurarlas más tarde editando el archivo .env
+)
 echo.
 pause

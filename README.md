@@ -81,6 +81,21 @@ Para acceder a la aplicación visite: http://localhost:8080
 
 Para modificar estos valores, edite el archivo `application.properties`.
 
+### Configuración de correo electrónico
+
+Para habilitar las notificaciones por correo:
+
+1. Durante la instalación, elija "s" cuando se le pregunte por la configuración de correo
+2. Proporcione un correo Gmail y una contraseña de aplicación
+3. Si omite esta configuración, puede agregarla más tarde editando el archivo `.env` en la carpeta de instalación
+
+#### Obtener una contraseña de aplicación para Gmail
+
+1. Vaya a su cuenta de Google: https://myaccount.google.com
+2. En Seguridad, active la verificación en dos pasos
+3. En "Contraseñas de aplicaciones", cree una nueva para "Otra aplicación" con nombre "Distribuciones Omega"
+4. Use la contraseña generada en el instalador o en el archivo .env
+
 ## Primer inicio
 
 Al iniciar la aplicación por primera vez:
