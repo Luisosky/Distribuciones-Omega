@@ -1,0 +1,39 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: omega-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: omega_db
+      MYSQL_USER: omega_user
+      MYSQL_PASSWORD: omega_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - omega-network
+    restart: unless-stopped
+
+  distribuciones-omega:
+    build: .
+    container_name: omega-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/omega_db?useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=omega_user
+      - SPRING_DATASOURCE_PASSWORD=omega_password
+    networks:
+      - omega-network
+    restart: unless-stopped
+
+networks:
+  omega-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
