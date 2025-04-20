@@ -289,7 +289,7 @@ public class FacturaRepository {
         
         String sql = "SELECT i.*, p.id_producto, p.nombre " +
                     "FROM items_factura i " +
-                    "JOIN productos p ON i.producto_id = p.id_producto " +
+                    "JOIN productos p ON i.producto_id = p.id_producto COLLATE utf8mb4_unicode_ci " +
                     "WHERE i.factura_id = ?";
                     
         try (Connection conn = DBUtil.getConnection();
@@ -450,10 +450,10 @@ public class FacturaRepository {
     private void cargarItemsFactura(Factura factura) {
         if (factura == null) return;
         
-        // Consulta modificada con los campos correctos de la tabla
+        // Consulta modificada con los campos correctos de la tabla y una collation específica para la comparación
         String sql = "SELECT i.*, p.id_producto, p.nombre " +
                      "FROM items_factura i " +
-                     "JOIN productos p ON i.producto_id = p.id_producto " +
+                     "JOIN productos p ON i.producto_id = p.id_producto COLLATE utf8mb4_unicode_ci " +
                      "WHERE i.factura_id = ?";
                          
         try (Connection conn = DBUtil.getConnection();
