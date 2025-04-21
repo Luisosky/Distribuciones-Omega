@@ -66,16 +66,32 @@ public class CotizacionRepository {
                 // Si ninguna tabla existe, crearla
                 if (!tablaExiste) {
                     System.out.println("Creando tabla items_cotizacion...");
+                    
+                    // Obtener el tipo y nombre de la clave primaria de productos
+                    String idTipo = "VARCHAR(20)"; // Por defecto
+                    String idColumna = "id"; // Por defecto
+                    
+                    try (ResultSet rsColumns = stmt.executeQuery("DESCRIBE productos")) {
+                        while (rsColumns.next()) {
+                            if ("PRI".equals(rsColumns.getString("Key"))) {
+                                idColumna = rsColumns.getString("Field");
+                                idTipo = rsColumns.getString("Type");
+                                break;
+                            }
+                        }
+                    }
+                    
                     String sql = "CREATE TABLE items_cotizacion (" +
                                 "id INT AUTO_INCREMENT PRIMARY KEY, " +
                                 "cotizacion_id INT NOT NULL, " +
-                                "producto_id VARCHAR(20) NOT NULL, " +
+                                "producto_id " + idTipo + " NOT NULL, " +
                                 "cantidad INT NOT NULL, " +
                                 "precio_unitario DECIMAL(10,2) NOT NULL, " +
                                 "subtotal DECIMAL(10,2) NOT NULL, " +
                                 "INDEX (cotizacion_id), " +
                                 "INDEX (producto_id), " +
-                                "FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id_cotizacion) ON DELETE CASCADE" +
+                                "FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id_cotizacion), " +
+                                "FOREIGN KEY (producto_id) REFERENCES productos(" + idColumna + ")" +
                                 ")";
                     
                     stmt.executeUpdate(sql);
@@ -172,7 +188,7 @@ public class CotizacionRepository {
             // Primero verificamos la estructura de la tabla productos
             boolean productosExiste = false;
             String idProductoTipo = "VARCHAR(20)"; // Tipo por defecto
-            String idProductoColumna = "id_producto"; // Columna por defecto
+            String idProductoColumna = "id"; // Columna por defecto - CAMBIADO a "id" para que coincida con la PK real
             
             try (Statement checkStmt = conn.createStatement();
                  ResultSet rsCheck = checkStmt.executeQuery("DESCRIBE productos")) {
@@ -197,6 +213,21 @@ public class CotizacionRepository {
                 // La tabla productos no existe, será creada más tarde
                 System.out.println("La tabla productos no existe todavía: " + e.getMessage());
                 productosExiste = false;
+            }
+            
+            // Imprimimos la estructura completa de productos para diagnóstico
+            try (Statement stmtTemp = conn.createStatement();
+                 ResultSet rsTemp = stmtTemp.executeQuery("DESCRIBE productos")) {
+                
+                System.out.println("Estructura de la tabla productos:");
+                while (rsTemp.next()) {
+                    String field = rsTemp.getString("Field");
+                    String type = rsTemp.getString("Type");
+                    String key = rsTemp.getString("Key");
+                    System.out.println(field + " - " + type + " - " + key);
+                }
+            } catch (SQLException e) {
+                System.out.println("Error al obtener estructura de productos: " + e.getMessage());
             }
             
             // Si la tabla productos no existe, no podemos continuar
@@ -256,9 +287,6 @@ public class CotizacionRepository {
                             "FOREIGN KEY (cliente_id) REFERENCES clientes(id_cliente) ON DELETE RESTRICT" +
                             ")";
                     
-                    // Temporalmente comentamos la FK de vendedor hasta que exista la tabla usuarios
-                    // "FOREIGN KEY (vendedor_id) REFERENCES usuarios(id_usuario) ON DELETE RESTRICT" +
-                    
                     stmt.executeUpdate(sqlCotizaciones);
                     System.out.println("Tabla cotizaciones creada con éxito");
                 } else {
@@ -271,14 +299,14 @@ public class CotizacionRepository {
                     System.out.println("Creando tabla items_cotizacion...");
                     // Usar el tipo correcto según la tabla productos
                     String sqlItems = "CREATE TABLE items_cotizacion (" +
-                            "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                            "id_item INT AUTO_INCREMENT PRIMARY KEY, " +
                             "cotizacion_id INT NOT NULL, " +
-                            "producto_id " + idProductoTipo + " NOT NULL, " +
+                            "producto_id " + idProductoTipo + " NOT NULL, " + // CORREGIDO: Usar el tipo exacto detectado
                             "cantidad INT NOT NULL, " +
                             "precio_unitario DECIMAL(10,2) NOT NULL, " +
                             "subtotal DECIMAL(10,2) NOT NULL, " +
-                            "FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id_cotizacion) ON DELETE CASCADE, " +
-                            "FOREIGN KEY (producto_id) REFERENCES productos(" + idProductoColumna + ") ON DELETE RESTRICT" +
+                            "FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id_cotizacion), " +
+                            "FOREIGN KEY (producto_id) REFERENCES productos(" + idProductoColumna + ")" + // CORREGIDO: Usar columna PK correcta
                             ")";
                     
                     stmt.executeUpdate(sqlItems);
