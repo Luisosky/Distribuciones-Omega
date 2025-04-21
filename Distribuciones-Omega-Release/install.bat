@@ -1,6 +1,11 @@
-REM filepath: f:\Project\Java\SW2\Distribuciones-Omega\Distribuciones-Omega-Release\install.bat
 @echo off
 setlocal enabledelayedexpansion
+
+:: Primero cambiamos al directorio donde se encuentra el script
+cd /d "%~dp0"
+
+:: Cambiar consola a Windows-1252 para acentos en español
+chcp 1252 >nul
 
 :: Si el script se está ejecutando con doble clic, activar modo de permanencia
 echo %cmdcmdline% | find /i "%~0" >nul
@@ -10,62 +15,70 @@ if not errorlevel 1 set STAY_OPEN=1
 title Instalador de Distribuciones Omega
 
 :: Instalador para Windows de Distribuciones-Omega
-
 echo Instalando Distribuciones-Omega...
+echo Directorio actual: %CD%
+
+:: Verificar si los archivos necesarios existen
+echo.
+echo Verificando archivos necesarios para la instalación...
+
+set MISSING_FILES=0
+
+if not exist "app-pos-0.0.1-SNAPSHOT.jar" (
+    echo ERROR: No se encuentra el archivo app-pos-0.0.1-SNAPSHOT.jar en el directorio actual.
+    echo Este archivo es NECESARIO para la instalación.
+    set MISSING_FILES=1
+)
+
+if not exist "src\main\resources\images\logo.ico" (
+    echo ADVERTENCIA: No se encuentra el archivo logo.ico en la ruta src\main\resources\images.
+    echo El acceso directo se creará sin icono personalizado.
+)
+
+if %MISSING_FILES% equ 1 (
+    echo.
+    echo No se puede continuar con la instalación por falta de archivos esenciales.
+    echo Por favor, asegúrese de que el archivo app-pos-0.0.1-SNAPSHOT.jar esté en la misma carpeta que este instalador.
+    echo.
+    echo Por favor, ejecute el instalador desde la carpeta que contiene todos los archivos necesarios.
+    goto :error
+)
 
 :: Verificar Java
 java -version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ERROR: Java no esta instalado. Por favor instale Java 17 o superior.
+    echo ERROR: Java no está instalado. Por favor instale Java 17 o superior.
     goto :error
 )
 
-:: Verificar MySQL - Ahora también busca MySQL80 service
+:: Verificar MySQL - Versión corregida
 echo Verificando instalación de MySQL...
+set MYSQL_FOUND=0
+
+:: Verificar si MySQL está disponible en línea de comandos
 mysql --version >nul 2>&1
-if %errorlevel% neq 0 (
-    sc query MySQL80 >nul 2>&1
-    if %errorlevel% neq 0 (
-        echo ADVERTENCIA: MySQL no fue detectado desde la línea de comandos ni como servicio MySQL80.
-        echo Si tiene MySQL Workbench instalado pero no el cliente MySQL en el PATH, 
-        echo asegúrese de que el servidor MySQL esté en ejecución a través de:
-        echo - MySQL Workbench
-        echo - O el panel de Servicios de Windows (services.msc)
-    ) else (
-        echo MySQL detectado como servicio MySQL80 - OK
-    )
-) else (
+if %errorlevel% equ 0 (
+    set MYSQL_FOUND=1
     echo MySQL detectado en línea de comandos - OK
+    goto :mysql_check_done
 )
 
-:: Verificar espacio en disco - versión corregida
-echo Verificando espacio en disco disponible...
-set SPACE_OK=1
-
-:: Obtenemos el tamaño requerido sin errores
-for /f "tokens=3" %%a in ('dir /s /-c "%~dp0" ^| find "bytes"') do (
-    set SIZE=%%a
-    echo Tamaño requerido: !SIZE! bytes
+:: Verificar si existe el servicio MySQL80 (usado por MySQL Workbench)
+sc query MySQL80 >nul 2>&1
+if %errorlevel% equ 0 (
+    set MYSQL_FOUND=1
+    echo MySQL detectado como servicio MySQL80 - OK
+    goto :mysql_check_done
 )
 
-:: Saltamos la verificación de espacio libre para evitar el error con números grandes
-goto :skip_disk_check
+:: Si llegamos aquí, MySQL no se detectó
+echo ADVERTENCIA: MySQL no fue detectado desde la línea de comandos ni como servicio MySQL80.
+echo Si tiene MySQL Workbench instalado pero no el cliente MySQL en el PATH, 
+echo asegúrese de que el servidor MySQL esté en ejecución a través de:
+echo - MySQL Workbench
+echo - O el panel de Servicios de Windows (services.msc)
 
-:: Este código ya no se ejecutará pero lo dejamos como referencia
-for /f "tokens=3" %%a in ('dir /-c "%USERPROFILE%\" ^| find "bytes free"') do (
-    set FREE=%%a
-    echo Espacio disponible: !FREE! bytes
-    if !FREE! LSS !SIZE! (
-        set SPACE_OK=0
-    )
-)
-
-if !SPACE_OK! EQU 0 (
-    echo ERROR: No hay suficiente espacio en disco para instalar la aplicación.
-    goto :error
-)
-
-:skip_disk_check
+:mysql_check_done
 
 :: Preguntar al usuario dónde quiere instalar
 set INSTALL_DIR=%USERPROFILE%\Distribuciones-Omega
@@ -74,8 +87,47 @@ if not "%CUSTOM_DIR%"=="" set INSTALL_DIR=%CUSTOM_DIR%
 
 echo Instalando en %INSTALL_DIR%
 
-if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
-xcopy /s /e /y .\* "%INSTALL_DIR%\" >nul
+:: Crear las carpetas necesarias
+echo Creando estructura de directorios...
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%"
+    if !errorlevel! neq 0 (
+        echo ERROR: No se pudo crear el directorio de instalación.
+        echo Verifique que tiene permisos de escritura en la ruta especificada.
+        goto :error
+    )
+)
+
+if not exist "%INSTALL_DIR%\src\main\resources\images" (
+    mkdir "%INSTALL_DIR%\src\main\resources\images"
+    if !errorlevel! neq 0 (
+        echo ERROR: No se pudo crear la estructura de directorios.
+        goto :error
+    )
+)
+
+:: Copiar archivos con mensajes de confirmación
+echo.
+echo Copiando archivos de la aplicación...
+
+echo - Copiando JAR principal...
+copy "app-pos-0.0.1-SNAPSHOT.jar" "%INSTALL_DIR%\"
+if !errorlevel! neq 0 (
+    echo   ERROR: No se pudo copiar app-pos-0.0.1-SNAPSHOT.jar
+    goto :error
+)
+
+if exist "README.md" (
+    echo - Copiando README.md...
+    copy "README.md" "%INSTALL_DIR%\"
+    if !errorlevel! neq 0 echo   ADVERTENCIA: No se pudo copiar README.md
+)
+
+if exist "src\main\resources\images\logo.ico" (
+    echo - Copiando logo.ico...
+    copy "src\main\resources\images\logo.ico" "%INSTALL_DIR%\src\main\resources\images\"
+    if !errorlevel! neq 0 echo   ADVERTENCIA: No se pudo copiar el logo.ico
+)
 
 :: Configuración de la base de datos
 echo.
@@ -133,85 +185,119 @@ echo DB_PASS=%DB_PASS% >> "%INSTALL_DIR%\.env"
 echo EMAIL=%EMAIL% >> "%INSTALL_DIR%\.env"
 echo APP_PASS=%APP_PASS% >> "%INSTALL_DIR%\.env"
 
-:: Crear acceso directo en escritorio
-echo Set oWS = WScript.CreateObject("WScript.Shell") > "%TEMP%\CreateShortcut.vbs"
-echo Set FSO = CreateObject("Scripting.FileSystemObject") >> "%TEMP%\CreateShortcut.vbs"
-echo sLinkFile = "%USERPROFILE%\Desktop\Distribuciones Omega.lnk" >> "%TEMP%\CreateShortcut.vbs"
-echo Set oLink = oWS.CreateShortcut(sLinkFile) >> "%TEMP%\CreateShortcut.vbs"
-echo oLink.TargetPath = "%INSTALL_DIR%\ejecutar.bat" >> "%TEMP%\CreateShortcut.vbs"
-echo oLink.WorkingDirectory = "%INSTALL_DIR%" >> "%TEMP%\CreateShortcut.vbs"
-echo oLink.Description = "Distribuciones Omega" >> "%TEMP%\CreateShortcut.vbs"
-echo oLink.WindowStyle = 1 >> "%TEMP%\CreateShortcut.vbs"
+:: Crear script de ejecución
+echo.
+echo Creando archivo ejecutar.bat...
 
-echo If FSO.FileExists("%INSTALL_DIR%\src\main\resources\images\logo.ico") Then >> "%TEMP%\CreateShortcut.vbs"
-echo   oLink.IconLocation = "%INSTALL_DIR%\src\main\resources\images\logo.ico, 0" >> "%TEMP%\CreateShortcut.vbs"
-echo End If >> "%TEMP%\CreateShortcut.vbs"
-echo oLink.Save >> "%TEMP%\CreateShortcut.vbs"
-cscript /nologo "%TEMP%\CreateShortcut.vbs"
-del "%TEMP%\CreateShortcut.vbs"
+echo @echo off > "%INSTALL_DIR%\ejecutar.bat"
+echo setlocal enabledelayedexpansion >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo ================================================ >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo      INICIANDO DISTRIBUCIONES OMEGA >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo ================================================ >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo REM Verificar que existe el JAR en la ubicación actual >> "%INSTALL_DIR%\ejecutar.bat"
+echo if not exist "app-pos-0.0.1-SNAPSHOT.jar" ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo ERROR: No se encuentra el archivo JAR en la carpeta actual. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo Por favor, asegúrese de que el archivo JAR está en la misma carpeta que este script. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     pause >> "%INSTALL_DIR%\ejecutar.bat"
+echo     exit /b 1 >> "%INSTALL_DIR%\ejecutar.bat"
+echo ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Iniciando aplicación... >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo REM Ejecutar la aplicación directamente con Spring Boot >> "%INSTALL_DIR%\ejecutar.bat"
+echo java -jar app-pos-0.0.1-SNAPSHOT.jar >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo if %%errorlevel%% neq 0 ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo Error al iniciar la aplicación. Código: %%errorlevel%% >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo Posibles soluciones: >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo 1. Asegúrese de tener MySQL instalado y en ejecución >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo 2. Verifique la conexión a la base de datos en el archivo .env >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo 3. Verifique permisos de escritura en la carpeta actual >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     pause >> "%INSTALL_DIR%\ejecutar.bat"
+echo ^) >> "%INSTALL_DIR%\ejecutar.bat"
 
-:: Agregar opción para crear un acceso directo en el menú inicio
-echo Set oWS = WScript.CreateObject("WScript.Shell") > "%TEMP%\StartMenu.vbs"
-echo Set FSO = CreateObject("Scripting.FileSystemObject") >> "%TEMP%\StartMenu.vbs"
-echo sLinkFile = oWS.SpecialFolders("StartMenu") ^& "\Programs\Distribuciones Omega.lnk" >> "%TEMP%\StartMenu.vbs"
-echo Set oLink = oWS.CreateShortcut(sLinkFile) >> "%TEMP%\StartMenu.vbs"
-echo oLink.TargetPath = "%INSTALL_DIR%\ejecutar.bat" >> "%TEMP%\StartMenu.vbs"
-echo oLink.WorkingDirectory = "%INSTALL_DIR%" >> "%TEMP%\StartMenu.vbs"
-echo oLink.Description = "Distribuciones Omega" >> "%TEMP%\StartMenu.vbs"
-echo oLink.WindowStyle = 1 >> "%TEMP%\StartMenu.vbs"
-echo If FSO.FileExists("%INSTALL_DIR%\src\main\resources\images\logo.ico") Then >> "%TEMP%\StartMenu.vbs"
-echo   oLink.IconLocation = "%INSTALL_DIR%\src\main\resources\images\logo.ico, 0" >> "%TEMP%\StartMenu.vbs"
-echo End If >> "%TEMP%\StartMenu.vbs"
-echo oLink.Save >> "%TEMP%\StartMenu.vbs"
-cscript /nologo "%TEMP%\StartMenu.vbs"
-del "%TEMP%\StartMenu.vbs"
-
-:: Copiar también el script ejecutar.bat si no existe ya en la carpeta de instalación
+:: Verificar si se creó correctamente el ejecutar.bat
 if not exist "%INSTALL_DIR%\ejecutar.bat" (
-    echo @echo off > "%INSTALL_DIR%\ejecutar.bat"
-    echo setlocal enabledelayedexpansion >> "%INSTALL_DIR%\ejecutar.bat"
-    echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo ================================================ >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo      INICIANDO DISTRIBUCIONES OMEGA >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo ================================================ >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo REM Verificar que existe el JAR en la ubicación actual >> "%INSTALL_DIR%\ejecutar.bat"
-    echo if not exist "app-pos-0.0.1-SNAPSHOT.jar" ^( >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo ERROR: No se encuentra el archivo JAR en la carpeta actual. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo Por favor, asegúrese de que el archivo JAR está en la misma carpeta que este script. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     pause >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     exit /b 1 >> "%INSTALL_DIR%\ejecutar.bat"
-    echo ^) >> "%INSTALL_DIR%\ejecutar.bat"
-    echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo Iniciando aplicación... >> "%INSTALL_DIR%\ejecutar.bat"
-    echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo REM Ejecutar la aplicación directamente con Spring Boot >> "%INSTALL_DIR%\ejecutar.bat"
-    echo java -jar app-pos-0.0.1-SNAPSHOT.jar >> "%INSTALL_DIR%\ejecutar.bat"
-    echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo if %%errorlevel%% neq 0 ^( >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo Error al iniciar la aplicación. Código: %%errorlevel%% >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo Posibles soluciones: >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo 1. Asegúrese de tener MySQL instalado y en ejecución >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo 2. Verifique la conexión a la base de datos en el archivo .env >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo 3. Verifique permisos de escritura en la carpeta actual >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
-    echo     pause >> "%INSTALL_DIR%\ejecutar.bat"
-    echo ^) >> "%INSTALL_DIR%\ejecutar.bat"
+    echo ERROR: No se pudo crear el archivo ejecutar.bat.
+    goto :error
 )
+
+:: Crear acceso directo en escritorio con método alternativo
+echo Creando acceso directo en escritorio...
+echo @echo off > "%TEMP%\CreateDesktopShortcut.cmd"
+echo setlocal enabledelayedexpansion >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo set SHORTCUT="%USERPROFILE%\Desktop\Distribuciones Omega.lnk" >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo set TARGET="%INSTALL_DIR%\ejecutar.bat" >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo set ICON="%INSTALL_DIR%\src\main\resources\images\logo.ico" >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo set PWD="%INSTALL_DIR%" >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo set SCRIPT="%TEMP%\tempVBS.vbs" >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo. >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo Set oWS = WScript.CreateObject^("WScript.Shell"^) ^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo Set oLink = oWS.CreateShortcut^(%%SHORTCUT%%^) ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo oLink.TargetPath = %%TARGET%% ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo oLink.WorkingDirectory = %%PWD%% ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo oLink.Description = "Distribuciones Omega" ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo oLink.WindowStyle = 1 ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo if exist "%INSTALL_DIR%\src\main\resources\images\logo.ico" echo echo oLink.IconLocation = %%ICON%% ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo echo oLink.Save ^>^> %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo cscript //nologo %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+echo del %%SCRIPT%% >> "%TEMP%\CreateDesktopShortcut.cmd"
+
+:: Ejecutar el script con derechos elevados para crear el acceso directo
+echo Set UAC = CreateObject^("Shell.Application"^) > "%TEMP%\ElevateShortcut.vbs"
+echo UAC.ShellExecute "%TEMP%\CreateDesktopShortcut.cmd", "", "", "runas", 1 >> "%TEMP%\ElevateShortcut.vbs"
+cscript //nologo "%TEMP%\ElevateShortcut.vbs"
+del "%TEMP%\ElevateShortcut.vbs"
+
+:: Esperar un poco para que se complete la creación del acceso directo
+timeout /t 2 >nul
+
+:: Crear acceso directo en el menú inicio (usando el mismo método mejorado)
+echo Creando acceso directo en menú inicio...
+echo @echo off > "%TEMP%\CreateStartMenuShortcut.cmd"
+echo setlocal enabledelayedexpansion >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo set SHORTCUT="%APPDATA%\Microsoft\Windows\Start Menu\Programs\Distribuciones Omega.lnk" >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo set TARGET="%INSTALL_DIR%\ejecutar.bat" >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo set ICON="%INSTALL_DIR%\src\main\resources\images\logo.ico" >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo set PWD="%INSTALL_DIR%" >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo set SCRIPT="%TEMP%\tempStartVBS.vbs" >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo. >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo Set oWS = WScript.CreateObject^("WScript.Shell"^) ^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo Set oLink = oWS.CreateShortcut^(%%SHORTCUT%%^) ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo oLink.TargetPath = %%TARGET%% ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo oLink.WorkingDirectory = %%PWD%% ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo oLink.Description = "Distribuciones Omega" ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo oLink.WindowStyle = 1 ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo if exist "%INSTALL_DIR%\src\main\resources\images\logo.ico" echo echo oLink.IconLocation = %%ICON%% ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo echo oLink.Save ^>^> %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo cscript //nologo %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+echo del %%SCRIPT%% >> "%TEMP%\CreateStartMenuShortcut.cmd"
+
+:: Ejecutar el script con derechos elevados para crear el acceso directo
+echo Set UAC = CreateObject^("Shell.Application"^) > "%TEMP%\ElevateStartMenuShortcut.vbs"
+echo UAC.ShellExecute "%TEMP%\CreateStartMenuShortcut.cmd", "", "", "runas", 1 >> "%TEMP%\ElevateStartMenuShortcut.vbs"
+cscript //nologo "%TEMP%\ElevateStartMenuShortcut.vbs"
+del "%TEMP%\ElevateStartMenuShortcut.vbs"
+
+:: Esperar un poco para que se complete la creación del acceso directo
+timeout /t 2 >nul
 
 echo.
 echo Instalación completada exitosamente!
 echo.
-echo Puede encontrar accesos directos en:
-echo - Escritorio
-echo - Menú de inicio
+echo NOTA: Si los accesos directos no se crearon correctamente,
+echo puede ejecutar manualmente el programa desde:
+echo %INSTALL_DIR%\ejecutar.bat
 echo.
 echo Base de datos configurada:
 echo - Host: %DB_HOST%:%DB_PORT%
@@ -232,6 +318,9 @@ echo Ha ocurrido un error durante la instalación. Revise los mensajes anteriore
 echo Si la ventana se cierra demasiado rápido, intente ejecutar el instalador como administrador
 echo o desde una línea de comandos (cmd).
 echo.
+echo Presione cualquier tecla para salir...
+pause >nul
+exit /b 1
 
 :end
 :: Si se ejecutó con doble clic, mantener abierto

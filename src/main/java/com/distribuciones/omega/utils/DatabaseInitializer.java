@@ -15,6 +15,7 @@ import com.distribuciones.omega.repository.CotizacionRepository;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -43,6 +44,7 @@ public class DatabaseInitializer {
             System.out.println("Database already initialized in this session. Skipping.");
             return;
         }
+        ensureDatabaseExists();
         
         try {
             Connection conn = DBUtil.getConnection();
@@ -53,6 +55,15 @@ public class DatabaseInitializer {
             try {
                 // 1. TABLAS SIN DEPENDENCIAS (NIVEL 1)
                 System.out.println("Inicializando tablas de nivel 1 (sin dependencias)...");
+                
+                // 1.0 Tabla de usuarios (nueva)
+                if (!tableExists("usuarios")) {
+                    createUsuariosTable();
+                    insertSampleUsuarios();
+                    System.out.println("Tabla usuarios creada y datos iniciales insertados.");
+                } else {
+                    System.out.println("Tabla usuarios ya existe.");
+                }
                 
                 // 1.1 Tabla de clientes
                 if (!tableExists("clientes")) {
@@ -161,6 +172,64 @@ public class DatabaseInitializer {
             e.printStackTrace();
         }
     }
+
+        /**
+     * Crea la base de datos si no existe
+     */
+    public static void ensureDatabaseExists() {
+        Connection conn = null;
+        String dbName = null;
+        String url = null;
+        String user = null;
+        String password = null;
+        
+        try {
+            // Obtener las credenciales y nombres desde el archivo .env o variables de entorno
+            dbName = System.getenv("DB_NAME");
+            if (dbName == null) dbName = "omega"; // Valor por defecto
+            
+            // Construir URL sin el nombre de la base de datos
+            String baseUrl = System.getenv("DB_URL");
+            if (baseUrl != null && baseUrl.contains("/")) {
+                url = baseUrl.substring(0, baseUrl.lastIndexOf("/"));
+            } else {
+                url = "jdbc:mysql://localhost:3306";
+            }
+            
+            user = System.getenv("DB_USER");
+            if (user == null) user = "root"; // Valor por defecto
+            
+            password = System.getenv("DB_PASS");
+            if (password == null) password = "root"; // Valor por defecto
+            
+            System.out.println("Intentando conectar a MySQL para verificar/crear la base de datos: " + dbName);
+            
+            // Conectar al servidor MySQL sin especificar una base de datos
+            conn = DriverManager.getConnection(url, user, password);
+            
+            // Crear la base de datos si no existe
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + dbName + 
+                            " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            
+            System.out.println("Base de datos " + dbName + " verificada/creada correctamente.");
+            
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error al crear la base de datos: " + e.getMessage(), e);
+            System.err.println("ERROR: No se pudo crear la base de datos. " + e.getMessage());
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Error al cerrar la conexión", e);
+                }
+            }
+        }
+    }
+
+
+
     
     /**
      * Verifica si una tabla específica existe en la base de datos
@@ -782,6 +851,60 @@ public class DatabaseInitializer {
                     LOGGER.severe("Error al cerrar conexión: " + e.getMessage());
                 }
             }
+        }
+    }
+    
+    /**
+     * Crea la tabla de usuarios
+     */
+    private static void createUsuariosTable() {
+        String createTableSQL = 
+            "CREATE TABLE usuarios (" +
+            "id_usuario INT AUTO_INCREMENT PRIMARY KEY, " +
+            "username VARCHAR(50) NOT NULL UNIQUE, " +
+            "password VARCHAR(100) NOT NULL, " +
+            "nombre VARCHAR(100) NOT NULL, " +
+            "edad INT, " +
+            "id VARCHAR(20), " +  // Cédula o identificación
+            "direccion VARCHAR(200), " +
+            "telefono VARCHAR(20), " +
+            "email VARCHAR(100), " +
+            "salario DECIMAL(10,2), " +
+            "tipo_contrato VARCHAR(50), " +
+            "rol VARCHAR(20) NOT NULL, " +
+            "activo BOOLEAN DEFAULT TRUE" +
+            ")";
+        
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
+            
+            stmt.execute(createTableSQL);
+            LOGGER.info("Tabla 'usuarios' creada exitosamente");
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al crear la tabla 'usuarios'", e);
+        }
+    }
+    
+    /**
+     * Inserta usuarios de muestra en la tabla
+     */
+    private static void insertSampleUsuarios() {
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
+            
+            String insertSQL = 
+                "INSERT INTO usuarios (username, password, nombre, edad, id, direccion, telefono, email, salario, tipo_contrato, rol, activo) VALUES " +
+                "('admin', 'encrypted:admin123', 'Administrador del Sistema', 35, '9999999999', 'Oficina Central', '099-999-9999', 'admin@omega.com', 1500.00, 'INDEFINIDO', 'ADMIN', true), " +
+                "('vendedor1', 'encrypted:secret', 'Juan Pérez', 28, '1234567890', 'Av. Principal 123', '098-765-4321', 'juan@omega.com', 850.00, 'FIJO', 'VENDEDOR', true), " +
+                "('almacen', 'encrypted:almacen123', 'María López', 32, '0987654321', 'Calle Secundaria 456', '097-123-4567', 'maria@omega.com', 900.00, 'FIJO', 'ALMACEN', true), " +
+                "('vendedor2', 'encrypted:secret2', 'Carlos Rodríguez', 25, '1122334455', 'Urb. Las Palmas', '099-333-2211', 'carlos@omega.com', 850.00, 'FIJO', 'VENDEDOR', true)";
+            
+            stmt.executeUpdate(insertSQL);
+            LOGGER.info("Usuarios de muestra insertados exitosamente");
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al insertar usuarios de muestra", e);
         }
     }
 }
