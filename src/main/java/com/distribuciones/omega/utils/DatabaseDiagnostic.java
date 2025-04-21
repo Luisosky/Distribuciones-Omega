@@ -20,6 +20,7 @@ public class DatabaseDiagnostic {
             tablesToCheck.add("items_cotizacion");
             tablesToCheck.add("detalle_cotizacion");
             tablesToCheck.add("inventario");
+            tablesToCheck.add("usuarios");
             
             // Obtener lista de tablas existentes
             System.out.println("=== TABLAS EXISTENTES EN LA BASE DE DATOS ===");
@@ -94,5 +95,29 @@ public class DatabaseDiagnostic {
      */
     public static void runDiagnostic() {
         main(new String[]{});
+    }
+    
+    /**
+     * Analiza todas las tablas de la base de datos
+     */
+    public static void analyzeAllTables() {
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
+            
+            System.out.println("=== ANALIZANDO TODAS LAS TABLAS DE LA BASE DE DATOS ===");
+            
+            // Obtener todas las tablas
+            ResultSet tablesRS = conn.getMetaData().getTables(null, null, "%", new String[]{"TABLE"});
+            while (tablesRS.next()) {
+                String tableName = tablesRS.getString("TABLE_NAME");
+                // Excluir tablas del sistema si es necesario
+                if (!tableName.startsWith("sys_")) {
+                    analyzeTable(conn, stmt, tableName);
+                }
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -328,128 +328,41 @@ public class DatabaseInitializer {
     /**
      * Recrea las tablas de productos eliminando las existentes y creándolas de nuevo
      */
-    private static void recreateProductosTables() {
-        try (Connection conn = DBUtil.getConnection()) {
-            conn.setAutoCommit(false);
+    public static void recreateProductosTables() {
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
             
-            try (Statement stmt = conn.createStatement()) {
-                // 0. Verificar qué tablas existen en la base de datos
-                List<String> tablasExistentes = new ArrayList<>();
-                DatabaseMetaData meta = conn.getMetaData();
-                String[] tiposTabla = {"TABLE"};
-                ResultSet rsTablas = meta.getTables(null, null, "%", tiposTabla);
+            LOGGER.info("Recreando tablas que faltan o están incorrectas");
+            System.out.println("Recreando tablas que faltan o están incorrectas");
+            
+            // Desactivar verificación de claves foráneas
+            stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+            
+            try {
+                // Primero eliminar tablas dependientes que tienen FK hacia productos
+                stmt.executeUpdate("DROP TABLE IF EXISTS detalle_factura");
+                stmt.executeUpdate("DROP TABLE IF EXISTS items_factura");
+                stmt.executeUpdate("DROP TABLE IF EXISTS detalle_cotizacion");
+                stmt.executeUpdate("DROP TABLE IF EXISTS items_cotizacion");
+                stmt.executeUpdate("DROP TABLE IF EXISTS inventario");
+                stmt.executeUpdate("DROP TABLE IF EXISTS productos_tecnologicos");
+                stmt.executeUpdate("DROP TABLE IF EXISTS productos_mobiliarios");
+                stmt.executeUpdate("DROP TABLE IF EXISTS insumos_oficina");
                 
-                while (rsTablas.next()) {
-                    tablasExistentes.add(rsTablas.getString("TABLE_NAME").toLowerCase());
-                }
+                // Ahora eliminar la tabla principal
+                stmt.executeUpdate("DROP TABLE IF EXISTS productos");
                 
-                LOGGER.info("Tablas existentes en la base de datos: " + tablasExistentes);
-                
-                // 1. Eliminar primero todas las tablas dependientes
-                
-                // 1.1 Verificar si hay tabla inventario y eliminarla (depende de productos)
-                if (tablasExistentes.contains("inventario")) {
-                    LOGGER.info("Eliminando tabla 'inventario' que referencia a productos...");
-                    
-                    // Verificar si hay claves foráneas en inventario que referencian a productos
-                    boolean tieneReferencias = false;
-                    try {
-                        ResultSet rsReferencias = meta.getExportedKeys(null, null, "productos");
-                        while (rsReferencias.next()) {
-                            String tablaReferencia = rsReferencias.getString("FKTABLE_NAME");
-                            String nombreConstraint = rsReferencias.getString("FK_NAME");
-                            if ("inventario".equalsIgnoreCase(tablaReferencia)) {
-                                tieneReferencias = true;
-                                LOGGER.info("Encontrada restricción: " + nombreConstraint);
-                                
-                                // Eliminar la restricción específica
-                                try {
-                                    String sqlDropFK = "ALTER TABLE inventario DROP FOREIGN KEY " + nombreConstraint;
-                                    stmt.executeUpdate(sqlDropFK);
-                                    LOGGER.info("Eliminada restricción de clave foránea: " + nombreConstraint);
-                                } catch (SQLException e) {
-                                    LOGGER.log(Level.WARNING, "Error al eliminar restricción: " + e.getMessage(), e);
-                                }
-                            }
-                        }
-                    } catch (SQLException e) {
-                        LOGGER.log(Level.WARNING, "Error al obtener claves exportadas: " + e.getMessage(), e);
-                    }
-                    
-                    // Si no podemos eliminar las claves específicas, intentamos otra estrategia
-                    if (tieneReferencias) {
-                        try {
-                            // Desactivar temporalmente la verificación de claves foráneas
-                            stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 0");
-                            stmt.executeUpdate("DROP TABLE IF EXISTS inventario");
-                            stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 1");
-                            LOGGER.info("Tabla inventario eliminada con verificación de FK desactivada");
-                        } catch (SQLException e) {
-                            LOGGER.log(Level.WARNING, "Error al eliminar inventario con FK_CHECKS=0: " + e.getMessage(), e);
-                            // Si esto falla, intentamos eliminar la tabla inventario directamente
-                            stmt.executeUpdate("DROP TABLE IF EXISTS inventario");
-                        }
-                    } else {
-                        // Si no tiene referencias, simplemente la eliminamos
-                        stmt.executeUpdate("DROP TABLE IF EXISTS inventario");
-                    }
-                }
-                
-                // 1.2 Otras tablas dependientes (cotizaciones, facturas, etc.)
-                for (String tablaDependiente : Arrays.asList(
-                        "items_cotizacion", "detalle_factura", "detalle_cotizacion")) {
-                    if (tablasExistentes.contains(tablaDependiente)) {
-                        LOGGER.info("Eliminando tabla '" + tablaDependiente + "' que podría referenciar a productos...");
-                        stmt.executeUpdate("DROP TABLE IF EXISTS " + tablaDependiente);
-                    }
-                }
-                
-                // 2. Eliminar las tablas especializadas de productos
-                for (String tablaEspecializada : Arrays.asList(
-                        "insumos_oficina", "productos_mobiliarios", "productos_tecnologicos")) {
-                    if (tablasExistentes.contains(tablaEspecializada)) {
-                        LOGGER.info("Eliminando tabla especializada: " + tablaEspecializada);
-                        stmt.executeUpdate("DROP TABLE IF EXISTS " + tablaEspecializada);
-                    }
-                }
-                
-                // 3. Finalmente, eliminar la tabla principal de productos
-                LOGGER.info("Intentando eliminar tabla principal 'productos'...");
-                try {
-                    stmt.executeUpdate("DROP TABLE IF EXISTS productos");
-                } catch (SQLException e) {
-                    LOGGER.log(Level.WARNING, "Error al eliminar productos, intentando con FK_CHECKS=0: " + e.getMessage(), e);
-                    stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 0");
-                    stmt.executeUpdate("DROP TABLE IF EXISTS productos");
-                    stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 1");
-                }
-                
-                // 4. Crear las tablas de productos desde cero
-                LOGGER.info("Recreando tablas que faltan o están incorrectas");
+                // Crear tablas nuevamente
                 createProductosTables();
                 
-                // 5. Recrear las tablas dependientes si es necesario
-                if (tablasExistentes.contains("inventario")) {
-                    LOGGER.info("Recreando tabla inventario...");
-                    createInventarioTable();
-                }
-                
-                conn.commit();
-                LOGGER.info("Tablas de productos recreadas exitosamente");
-            } catch (Exception e) {
-                conn.rollback();
-                LOGGER.log(Level.SEVERE, "Error durante la recreación de tablas: " + e.getMessage(), e);
-                throw e;
             } finally {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException e) {
-                    LOGGER.log(Level.WARNING, "Error al restaurar autoCommit: " + e.getMessage(), e);
-                }
+                // Reactivar verificación de claves foráneas
+                stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
             }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al recrear las tablas de productos: " + e.getMessage(), e);
-            throw new RuntimeException("Error al recrear las tablas de productos", e);
+            
+        } catch (SQLException e) {
+            LOGGER.severe("Error al recrear tablas de productos: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -763,94 +676,45 @@ public class DatabaseInitializer {
      * Crea la tabla de detalle_factura
      */
     private static void createDetalleFacturaTable() {
-        Connection conn = null;
-        try {
-            conn = DBUtil.getConnection();
-            conn.setAutoCommit(false); // Iniciar transacción
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
             
-            // Verificar estructura de la tabla productos
-            String[] pkInfo = SchemaUtil.getPrimaryKeyInfo(conn, "productos");
-            String idProductoColumna = pkInfo[0]; // Este será "id" según el log
-            String idDefinitionExacta = SchemaUtil.getColumnDefinition(conn, "productos", idProductoColumna);
+            // Verificar si la tabla existe y eliminarla para recrearla
+            stmt.executeUpdate("DROP TABLE IF EXISTS detalle_factura");
             
-            LOGGER.info("Creando tabla detalle_factura usando " + idProductoColumna + " como referencia a productos");
+            // Crear la tabla con la estructura correcta, usando 'id' para hacer referencia a productos
+            String sql = "CREATE TABLE detalle_factura (" +
+                    "id_detalle INT NOT NULL AUTO_INCREMENT PRIMARY KEY, " +
+                    "id_factura INT NOT NULL, " +
+                    "id VARCHAR(20) NOT NULL, " +  // Debe coincidir con productos.id (VARCHAR(20))
+                    "cantidad INT NOT NULL, " +
+                    "precio_unitario DECIMAL(10,2) NOT NULL, " +
+                    "subtotal DECIMAL(10,2) NOT NULL, " +
+                    "INDEX (id_factura), " +
+                    "INDEX (id), " +
+                    "FOREIGN KEY (id_factura) REFERENCES facturas(id_factura) ON DELETE CASCADE" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
             
-            try (Statement stmt = conn.createStatement()) {
-                // Desactivar verificación de claves foráneas temporalmente
-                stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+            stmt.executeUpdate(sql);
+            LOGGER.info("Tabla detalle_factura creada exitosamente");
+            
+            // Ahora añadir la clave foránea a productos por separado para mejor manejo de errores
+            try {
+                String addForeignKeySQL = "ALTER TABLE detalle_factura " +
+                                         "ADD CONSTRAINT fk_detalle_factura_producto " +
+                                         "FOREIGN KEY (id) REFERENCES productos(id)";
                 
-                // Eliminar tabla si existe
-                stmt.execute("DROP TABLE IF EXISTS detalle_factura");
-                
-                // Crear tabla sin la restricción de clave foránea
-                String sql = "CREATE TABLE detalle_factura (" +
-                            "id_detalle INT AUTO_INCREMENT PRIMARY KEY, " +
-                            "id_factura INT NOT NULL, " +
-                            idProductoColumna + " " + idDefinitionExacta + " NOT NULL, " +
-                            "cantidad INT NOT NULL, " +
-                            "precio_unitario DECIMAL(10,2) NOT NULL, " +
-                            "subtotal DECIMAL(10,2) NOT NULL, " +
-                            "INDEX (id_factura), " +
-                            "INDEX (" + idProductoColumna + "), " +
-                            "FOREIGN KEY (id_factura) REFERENCES facturas(id_factura) ON DELETE CASCADE" +
-                            ")";
-                
-                stmt.execute(sql);
-                LOGGER.info("Tabla detalle_factura creada exitosamente");
-                
-                // Volver a activar verificación de claves foráneas
-                stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
-                
-                // Intentar añadir la restricción de clave foránea por separado
-                try {
-                    String addFKSQL = "ALTER TABLE detalle_factura " +
-                                     "ADD CONSTRAINT fk_detalle_factura_producto " +
-                                     "FOREIGN KEY (" + idProductoColumna + ") " + 
-                                     "REFERENCES productos(" + idProductoColumna + ") " +
-                                     "ON DELETE RESTRICT";
-                    
-                    stmt.execute(addFKSQL);
-                    LOGGER.info("Clave foránea a productos añadida exitosamente a detalle_factura");
-                } catch (SQLException e) {
-                    LOGGER.warning("No se pudo añadir la clave foránea a productos en detalle_factura: " + e.getMessage());
-                    LOGGER.warning("La tabla detalle_factura se ha creado pero sin la restricción de clave foránea");
-                    // No lanzamos la excepción para permitir que la aplicación continúe funcionando
-                }
-                
-                conn.commit();
+                stmt.executeUpdate(addForeignKeySQL);
+                LOGGER.info("Clave foránea a productos añadida a detalle_factura");
             } catch (SQLException e) {
-                if (conn != null) {
-                    try {
-                        conn.rollback();
-                    } catch (SQLException ex) {
-                        LOGGER.severe("Error al hacer rollback: " + ex.getMessage());
-                    }
-                }
-                throw e;
-            } finally {
-                if (conn != null) {
-                    try {
-                        // Asegurarse de que FOREIGN_KEY_CHECKS vuelva a 1
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
-                        }
-                        conn.setAutoCommit(true);
-                    } catch (SQLException ex) {
-                        LOGGER.severe("Error al restaurar configuración: " + ex.getMessage());
-                    }
-                }
+                // Si la restricción ya existe o hay un problema, loguear el error pero continuar
+                LOGGER.warning("No se pudo añadir la restricción de clave foránea a productos: " + e.getMessage());
+                // La tabla ya está creada, así que continuamos sin la FK si hay problemas
             }
+            
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error al crear la tabla de detalle_factura", e);
+            LOGGER.log(Level.SEVERE, "Error al crear tabla detalle_factura: " + e.getMessage(), e);
             throw new RuntimeException("Error al crear la tabla de detalle_factura", e);
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    LOGGER.severe("Error al cerrar conexión: " + e.getMessage());
-                }
-            }
         }
     }
     

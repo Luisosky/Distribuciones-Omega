@@ -235,17 +235,36 @@ public class UsuarioRepository {
         Usuario usuario = new Usuario();
         usuario.setIdUsuario(rs.getLong("id_usuario"));
         usuario.setUsername(rs.getString("username"));
-        usuario.setPassword(rs.getString("password"));
-        usuario.setNombre(rs.getString("nombre"));
-        usuario.setEdad(rs.getInt("edad"));
-        usuario.setId(rs.getString("id"));
-        usuario.setDireccion(rs.getString("direccion"));
-        usuario.setTelefono(rs.getString("telefono"));
-        usuario.setEmail(rs.getString("email"));
-        usuario.setSalario(rs.getDouble("salario"));
-        usuario.setTipoContrato(rs.getString("tipo_contrato"));
-        usuario.setRol(rs.getString("rol"));
-        usuario.setActivo(rs.getBoolean("activo"));
+        
+        try {
+            usuario.setNombre(rs.getString("nombre"));
+        } catch (SQLException e) {
+            System.out.println("Advertencia: Columna 'nombre' no encontrada en el ResultSet");
+            usuario.setNombre("Usuario " + rs.getString("username")); // Valor por defecto
+        }
+        
+        try {
+            usuario.setRol(rs.getString("rol"));
+        } catch (SQLException e) {
+            usuario.setRol("usuario"); // Rol por defecto
+        }
+        
+        try {
+            usuario.setActivo(rs.getBoolean("activo"));
+        } catch (SQLException e) {
+            usuario.setActivo(true); // Activo por defecto
+        }
+        
+        try {
+            usuario.setPassword(rs.getString("password"));
+            // Agregar esta línea para diagnóstico
+            System.out.println("Contraseña recuperada para usuario " + usuario.getUsername() + ": " + 
+                              (usuario.getPassword() != null ? "[presente]" : "[null]"));
+        } catch (SQLException e) {
+            System.out.println("Error al recuperar contraseña: " + e.getMessage());
+            usuario.setPassword(null); // Explícitamente establecer null si hay error
+        }
+        
         return usuario;
     }
 }

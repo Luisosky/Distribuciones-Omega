@@ -24,14 +24,23 @@ public class UsuarioService {
      * @return Usuario autenticado o null si las credenciales son incorrectas
      */
     public Usuario autenticar(String username, String password) {
-        Usuario usuario = usuarioRepository.findByUsername(username);
-        
-        if (usuario != null && verificarPassword(password, usuario.getPassword())) {
-            // Guardar usuario en sesión
-            SessionManager.getInstance().setUsuarioActual(usuario);
-            return usuario;
+        // Verificaciones iniciales
+        if (username == null || username.trim().isEmpty() || password == null) {
+            return null; // Rechazar autenticación sin credenciales válidas
         }
         
+        Usuario usuario = usuarioRepository.findByUsername(username);
+        
+        // Verificar si se encontró el usuario y tiene una contraseña
+        if (usuario != null && usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
+            if (verificarPassword(password, usuario.getPassword())) {
+                // Guardar usuario en sesión
+                SessionManager.getInstance().setUsuarioActual(usuario);
+                return usuario;
+            }
+        }
+        
+        // Si llegamos aquí, la autenticación falló
         return null;
     }
     
@@ -118,6 +127,15 @@ public class UsuarioService {
      * Verifica si una contraseña coincide con su versión encriptada
      */
     private boolean verificarPassword(String plainPassword, String encryptedPassword) {
+        // Verificar si alguno de los argumentos es null
+        if (encryptedPassword == null) {
+            return false; // Siempre rechazar la autenticación si no hay contraseña almacenada
+        }
+        
+        if (plainPassword == null) {
+            return false; // Siempre rechazar la autenticación si no se proporciona contraseña
+        }
+        
         // Implementación simple para pruebas - en producción usar BCrypt
         return encryptedPassword.equals("encrypted:" + plainPassword);
     }
