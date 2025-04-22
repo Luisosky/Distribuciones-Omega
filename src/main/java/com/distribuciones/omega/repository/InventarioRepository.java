@@ -63,6 +63,70 @@ public class InventarioRepository {
         }
     }
 
+
+
+
+        /**
+     * Busca un producto por su código
+     * @param codigo El código del producto a buscar
+     * @return El producto encontrado o null si no existe
+     */
+    public ProductoInventario buscarProductoPorCodigo(String codigo) {
+        if (codigo == null || codigo.isEmpty()) {
+            return null;
+        }
+        
+        String sql = "SELECT * FROM productos WHERE codigo = ? OR id = ?";
+        
+        try (Connection conn = DBUtil.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, codigo);
+            stmt.setString(2, codigo);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    ProductoInventario producto = new ProductoInventario();
+                    producto.setCodigo(rs.getString("id")); // Usar id como código
+                    
+                    try {
+                        producto.setDescripcion(rs.getString("nombre"));
+                    } catch (SQLException e) {
+                        try {
+                            producto.setDescripcion(rs.getString("descripcion"));
+                        } catch (SQLException ex) {
+                            producto.setDescripcion("Producto " + codigo);
+                        }
+                    }
+                    
+                    try {
+                        producto.setPrecio(rs.getDouble("precio"));
+                    } catch (SQLException e) {
+                        producto.setPrecio(0.0);
+                    }
+                    
+                    try {
+                        producto.setCantidad(rs.getInt("cantidad"));
+                    } catch (SQLException e) {
+                        try {
+                            producto.setCantidad(rs.getInt("stock"));
+                        } catch (SQLException ex) {
+                            producto.setCantidad(0);
+                        }
+                    }
+                    
+                    return producto;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar producto por código: " + e.getMessage());
+        }
+        
+        return null;
+    }
+
+
+
     /**
      * Obtiene todos los productos del inventario
      * @return Lista de productos en inventario

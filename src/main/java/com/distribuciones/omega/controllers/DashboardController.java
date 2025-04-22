@@ -291,7 +291,7 @@ public class DashboardController {
             PagoController pagoController = loader.getController();
             
             // Inicializar datos en el controlador
-            pagoController.inicializarDatos(factura);
+            pagoController.inicializarDatos(factura, null);
             
             // Crear una nueva escena y aplicar el CSS
             Scene scene = new Scene(root);

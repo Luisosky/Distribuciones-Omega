@@ -6,7 +6,6 @@ import com.distribuciones.omega.utils.AlertUtils;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.TextArea;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -15,6 +14,7 @@ import javafx.stage.Stage;
 
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -87,14 +87,59 @@ public class PagoController {
     /**
      * Inicializa los datos con la factura que se va a pagar
      * @param factura Factura a pagar
+     * @param itemsCompraActual Lista de ítems de la compra actual (si están disponibles)
      */
-    public void inicializarDatos(Factura factura) {
+    public void inicializarDatos(Factura factura, List<ItemFactura> itemsCompraActual) {
         if (factura == null) {
             AlertUtils.mostrarError("Error", "No se recibió información de factura válida");
             return;
         }
         
         this.factura = factura;
+        
+        // Verificar si la factura tiene ítems
+        if (factura.getItems() == null || factura.getItems().isEmpty()) {
+            try {
+                // Si tenemos los ítems de la compra actual, usarlos para reparar
+                if (itemsCompraActual != null && !itemsCompraActual.isEmpty()) {
+                    System.out.println("Reparando factura con los ítems de la compra actual...");
+                    boolean reparada = facturaService.repararFacturaConItems(factura.getId(), itemsCompraActual);
+                    
+                    if (reparada) {
+                        // Recargar la factura con los ítems reparados
+                        factura = facturaService.obtenerFacturaPorId(factura.getId());
+                        this.factura = factura;
+                        System.out.println("Factura reparada exitosamente con ítems reales.");
+                    } else {
+                        AlertUtils.mostrarAdvertencia("Advertencia", 
+                            "No se pudieron guardar los ítems reales de la compra. Se usarán ejemplos si están disponibles.");
+                        
+                        // Intentar reparar con datos de ejemplo como fallback
+                        boolean reparadaConEjemplos = facturaService.diagnosticarYRepararFactura(factura.getId());
+                        if (reparadaConEjemplos) {
+                            factura = facturaService.obtenerFacturaPorId(factura.getId());
+                            this.factura = factura;
+                        }
+                    }
+                } else {
+                    // Si no tenemos ítems actuales, usamos el método de diagnóstico y reparación normal
+                    System.out.println("La factura no tiene ítems y no hay compra actual. Intentando reparar con ejemplos...");
+                    boolean reparada = facturaService.diagnosticarYRepararFactura(factura.getId());
+                    
+                    if (reparada) {
+                        // Recargar la factura con los ítems reparados
+                        factura = facturaService.obtenerFacturaPorId(factura.getId());
+                        this.factura = factura;
+                    } else {
+                        AlertUtils.mostrarAdvertencia("Advertencia", 
+                            "No se pudieron cargar los ítems de la factura. Los datos mostrados pueden estar incompletos.");
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error al intentar reparar la factura: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
         
         // Formatear fecha
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -108,13 +153,17 @@ public class PagoController {
         
         // Mostrar resumen de compra
         StringBuilder resumen = new StringBuilder();
-        for (ItemFactura item : factura.getItems()) {
-            resumen.append(item.getCantidad())
-                  .append(" x ")
-                  .append(item.getProducto().getDescripcion())
-                  .append(" - ")
-                  .append(currencyFormat.format(item.getSubtotal()))
-                  .append("\n");
+        if (factura.getItems() != null && !factura.getItems().isEmpty()) {
+            for (ItemFactura item : factura.getItems()) {
+                resumen.append(item.getCantidad())
+                    .append(" x ")
+                    .append(item.getProducto().getDescripcion())
+                    .append(" - ")
+                    .append(currencyFormat.format(item.getSubtotal()))
+                    .append("\n");
+            }
+        } else {
+            resumen.append("No hay ítems disponibles para mostrar.");
         }
         txtResumenCompra.setText(resumen.toString());
         

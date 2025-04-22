@@ -949,8 +949,8 @@ public class CotizacionController {
             }
             
             // 4. Generar la factura a partir de la cotización
-            Factura factura = facturaService.generarFacturaDesdeContizacion(cotizacion);
-            
+            List<ItemFactura> itemsParaFactura = convertirItemsParaFactura();
+            Factura factura = facturaService.generarFacturaDesdeContizacion(cotizacion, itemsParaFactura);
             if (factura == null || factura.getId() == 0) {
                 throw new Exception("No se pudo generar la factura. Verifique los datos e intente nuevamente.");
             }
@@ -981,6 +981,22 @@ public class CotizacionController {
             alert.getButtonTypes().setAll(btnProcederPago, btnCerrar);
             
             Optional<ButtonType> result = alert.showAndWait();
+
+                        // Agregamos logs para depuración
+            System.out.println("\n============= ITEMS PARA FACTURA =============");
+            System.out.println("Preparando ítems para factura: " + factura.getNumeroFactura());
+               
+            
+            // Log de ítems para debug
+            System.out.println("Ítems convertidos: " + itemsParaFactura.size());
+            for (ItemFactura item : itemsParaFactura) {
+                System.out.println("Item: Producto=" + item.getProducto().getIdProducto() 
+                    + ", Desc=" + item.getProducto().getDescripcion()
+                    + ", Cantidad=" + item.getCantidad()
+                    + ", PrecioU=" + item.getPrecioUnitario()
+                    + ", Subtotal=" + item.getSubtotal());
+            }
+            System.out.println("=============================================\n");
             
             if (result.isPresent() && result.get() == btnProcederPago) {
                 // 7. Navegar a la pantalla de pago - IMPLEMENTACIÓN CORREGIDA
@@ -1004,7 +1020,7 @@ public class CotizacionController {
                     
                     // Obtener el controlador y pasarle la factura
                     PagoController pagoController = loader.getController();
-                    pagoController.inicializarDatos(factura);
+                    pagoController.inicializarDatos(factura, itemsParaFactura);
                     
                     // Crear un nuevo Stage para mostrar la pantalla de pago
                     Stage pagoStage = new Stage();
@@ -1186,5 +1202,24 @@ public class CotizacionController {
     private void cerrarVentana() {
         Stage stage = (Stage) txtVendedor.getScene().getWindow();
         stage.close();
+    }
+    
+    /**
+     * Convierte los items de cotización a items de factura
+     */
+    private List<ItemFactura> convertirItemsParaFactura() {
+        List<ItemFactura> itemsFactura = new ArrayList<>();
+        
+        for (ItemCotizacion itemCotizacion : itemsCotizacion) {
+            ItemFactura itemFactura = new ItemFactura();
+            itemFactura.setProducto(itemCotizacion.getProducto());
+            itemFactura.setCantidad(itemCotizacion.getCantidad());
+            itemFactura.setPrecioUnitario(itemCotizacion.getPrecioUnitario());
+            itemFactura.setDescuento(itemCotizacion.getDescuento());
+            itemFactura.setSubtotal(itemCotizacion.getSubtotal());
+            itemsFactura.add(itemFactura);
+        }
+        
+        return itemsFactura;
     }
 }

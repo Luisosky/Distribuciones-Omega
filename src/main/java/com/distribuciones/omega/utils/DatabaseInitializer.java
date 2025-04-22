@@ -42,6 +42,8 @@ public class DatabaseInitializer {
         // Check if already initialized in this session
         if (initialized) {
             System.out.println("Database already initialized in this session. Skipping.");
+            System.out.println("Verificando consistencia de la base de datos...");
+            unificarCollations();
             return;
         }
         ensureDatabaseExists();
@@ -151,6 +153,14 @@ public class DatabaseInitializer {
                 } else {
                     System.out.println("Tabla de detalle_factura ya existe.");
                 }
+
+                // 3.4 Tabla de items_factura (equivalente a detalle_factura pero con nombres diferentes)
+                if (!tableExists("items_factura")) {
+                    System.out.println("Creando tabla de items_factura...");
+                    createItemsFacturaTable();
+                } else {
+                    System.out.println("Tabla de items_factura ya existe.");
+                }
                 
                 // Si llegamos aquí, todo se creó correctamente
                 conn.commit();
@@ -170,6 +180,32 @@ public class DatabaseInitializer {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error durante la inicialización de la base de datos", e);
             e.printStackTrace();
+        }
+    }
+
+    private static void unificarCollations() {
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
+            
+            System.out.println("Unificando collations de tablas...");
+            
+            // Lista de tablas a verificar y ajustar
+            String[] tablas = {"facturas", "items_factura", "detalle_factura", "productos"};
+            
+            for (String tabla : tablas) {
+                try {
+                    // Convertir cada tabla a utf8mb4_unicode_ci (el mismo que productos)
+                    String sql = "ALTER TABLE " + tabla + " CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
+                    stmt.executeUpdate(sql);
+                    System.out.println("Tabla " + tabla + " convertida a utf8mb4_unicode_ci");
+                } catch (SQLException e) {
+                    System.err.println("Error al convertir tabla " + tabla + ": " + e.getMessage());
+                    // Continuar con la siguiente tabla
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error general al unificar collations: " + e.getMessage());
         }
     }
 
@@ -548,10 +584,36 @@ public class DatabaseInitializer {
         try {
             FacturaRepository repository = new FacturaRepository();
             repository.createTableIfNotExists();
-            LOGGER.info("Tabla de facturas creada exitosamente");
+            
+            // Verificar explícitamente si items_factura existe
+            if (!tableExists("items_factura")) {
+                System.out.println("Tabla items_factura no encontrada, creándola manualmente...");
+                try (Connection conn = DBUtil.getConnection();
+                     Statement stmt = conn.createStatement()) {
+                    
+                    String sql = "CREATE TABLE IF NOT EXISTS items_factura (" +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "factura_id INT NOT NULL, " +
+                        "producto_id VARCHAR(20) NOT NULL, " +
+                        "cantidad INT NOT NULL, " +
+                        "precio_unitario DECIMAL(10,2) NOT NULL, " +
+                        "descuento DECIMAL(10,2) DEFAULT 0.00, " +
+                        "subtotal DECIMAL(10,2) NOT NULL, " +
+                        "INDEX (factura_id), " +
+                        "INDEX (producto_id), " +
+                        "FOREIGN KEY (factura_id) REFERENCES facturas(id_factura) ON DELETE CASCADE, " +
+                        "FOREIGN KEY (producto_id) REFERENCES productos(id)" +
+                        ")";
+                    
+                    stmt.executeUpdate(sql);
+                    System.out.println("Tabla items_factura creada exitosamente");
+                }
+            }
+            
+            LOGGER.info("Tabla de facturas e items_factura creadas exitosamente");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al crear la tabla de facturas", e);
-            throw new RuntimeException("Error al crear la tabla de facturas", e);
+            LOGGER.log(Level.SEVERE, "Error al crear las tablas de facturas", e);
+            throw new RuntimeException("Error al crear las tablas de facturas", e);
         }
     }
     
@@ -715,6 +777,83 @@ public class DatabaseInitializer {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error al crear tabla detalle_factura: " + e.getMessage(), e);
             throw new RuntimeException("Error al crear la tabla de detalle_factura", e);
+        }
+    }
+
+
+        /**
+     * Crea la tabla items_factura si no existe
+     * Esta tabla es necesaria para algunas operaciones de facturación
+     */
+    private static void createItemsFacturaTable() {
+        try (Connection conn = DBUtil.getConnection();
+            Statement stmt = conn.createStatement()) {
+            
+            // Verificar si la tabla ya existe
+            boolean tablaExiste = tableExists("items_factura");
+            
+            if (!tablaExiste) {
+                System.out.println("Creando tabla items_factura...");
+                
+                // Obtener información sobre la clave de productos
+                String idDefinitionExacta = "VARCHAR(20)"; // Por defecto, pero verificamos
+                
+                try (ResultSet rsCheck = stmt.executeQuery("SHOW COLUMNS FROM productos WHERE Field = 'id'")) {
+                    if (rsCheck.next()) {
+                        idDefinitionExacta = rsCheck.getString("Type");
+                        System.out.println("Clave primaria de productos (id): " + idDefinitionExacta);
+                    }
+                } catch (SQLException e) {
+                    System.out.println("No se pudo determinar el tipo exacto de id en productos, usando VARCHAR(20): " + e.getMessage());
+                }
+                
+                // Desactivar verificación de claves foráneas temporalmente
+                stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+                
+                try {
+                    // Crear la tabla
+                    String sqlItems = "CREATE TABLE items_factura (" +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "factura_id INT NOT NULL, " +
+                        "producto_id " + idDefinitionExacta + " NOT NULL, " +
+                        "cantidad INT NOT NULL, " +
+                        "precio_unitario DECIMAL(10,2) NOT NULL, " +
+                        "descuento DECIMAL(10,2) DEFAULT 0.00, " +
+                        "subtotal DECIMAL(10,2) NOT NULL, " +
+                        "INDEX (factura_id), " +
+                        "INDEX (producto_id), " +
+                        "FOREIGN KEY (factura_id) REFERENCES facturas(id_factura) ON DELETE CASCADE" +
+                        ")";
+                    
+                    stmt.executeUpdate(sqlItems);
+                    System.out.println("Tabla items_factura creada correctamente");
+                    
+                    // Intentar añadir restricción de clave foránea por separado
+                    try {
+                        String addFKSQL = "ALTER TABLE items_factura " +
+                                        "ADD CONSTRAINT fk_items_factura_producto " +
+                                        "FOREIGN KEY (producto_id) REFERENCES productos(id)";
+                        
+                        stmt.executeUpdate(addFKSQL);
+                        System.out.println("Clave foránea a productos añadida exitosamente");
+                    } catch (SQLException e) {
+                        System.out.println("No se pudo añadir la clave foránea a productos: " + e.getMessage());
+                        System.out.println("La tabla items_factura se ha creado pero sin la restricción de clave foránea");
+                    }
+                } finally {
+                    // Reactivar verificación de claves foráneas
+                    stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
+                }
+                
+                LOGGER.info("Tabla items_factura creada exitosamente");
+            } else {
+                System.out.println("La tabla items_factura ya existe");
+            }
+            
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error al crear tabla items_factura: " + e.getMessage(), e);
+            System.err.println("ERROR: No se pudo crear la tabla items_factura: " + e.getMessage());
+            // No lanzamos excepción para permitir que la aplicación continúe
         }
     }
     

@@ -1,5 +1,6 @@
 package com.distribuciones.omega;
 
+import com.distribuciones.omega.utils.DatabaseDiagnostic;
 import com.distribuciones.omega.utils.DatabaseInitializer;
 import com.distribuciones.omega.utils.InventarioMonitor;
 
@@ -41,6 +42,7 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        DatabaseDiagnostic.analyzeAllTables();
         // Mostrar pantalla de carga
         Label lblCarga = new Label("Inicializando base de datos...");
         ProgressIndicator progress = new ProgressIndicator();

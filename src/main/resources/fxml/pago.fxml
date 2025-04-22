@@ -92,20 +92,20 @@
                   </rowConstraints>
                   
                   <Label text="Subtotal:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                  <Label fx:id="lblSubtotal" text="$$0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                  <Label fx:id="lblSubtotal" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" />
                   
                   <Label text="Descuento:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                  <Label fx:id="lblDescuento" text="$$0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <Label fx:id="lblDescuento" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                   
                   <Label text="IVA (12%):" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                  <Label fx:id="lblIva" text="$$0.00" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                  <Label fx:id="lblIva" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="2" />
                   
                   <Label text="TOTAL:" GridPane.columnIndex="0" GridPane.rowIndex="3">
                      <font>
                         <Font name="System Bold" size="14.0" />
                      </font>
                   </Label>
-                  <Label fx:id="lblTotal" text="$$0.00" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                  <Label fx:id="lblTotal" text="\$0.00" GridPane.columnIndex="1" GridPane.rowIndex="3">
                      <font>
                         <Font name="System Bold" size="14.0" />
                      </font>
@@ -142,7 +142,7 @@
                <Label text="Monto Recibido:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
                <TextField fx:id="txtMontoPago" prefWidth="250.0" GridPane.columnIndex="3" GridPane.rowIndex="0" />
                
-               <Label fx:id="lblCambio" text="Cambio: $$0.00" GridPane.columnIndex="3" GridPane.rowIndex="1">
+               <Label fx:id="lblCambio" text="Cambio: \$0.00" GridPane.columnIndex="3" GridPane.rowIndex="1">
                   <font>
                      <Font name="System Bold" size="14.0" />
                   </font>
