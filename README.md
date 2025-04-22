@@ -103,7 +103,7 @@ Al iniciar la aplicación por primera vez:
 1. Se creará automáticamente la estructura de la base de datos
 2. Se insertarán datos de ejemplo para facilitar las pruebas
 3. Utilice las siguientes credenciales para ingresar:
-   - **Usuarios**: admin, vendedor1 [Juan Pérez], almacen [María López], vendedor2 [Carlos Rodríguez]    String insertSQL =          
+   - **Usuarios**: admin, vendedor1 [Juan Pérez], almacen [María López], vendedor2 [Carlos Rodríguez]            
    - **Contraseñas**: admin123, secret, almacen123, secret2
 
 ## Solución de problemas
