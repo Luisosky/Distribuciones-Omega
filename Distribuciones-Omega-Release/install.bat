@@ -136,11 +136,19 @@ echo CONFIGURACION DE LA BASE DE DATOS
 echo ------------------------------------------------
 echo.
 
-set DB_HOST=127.0.0.1
+set DB_HOST=localhost
 set DB_PORT=3306
 set DB_NAME=omega
 set DB_USER=root
-set DB_PASS=root
+set DB_PASS=root123
+
+echo Valores predeterminados para la base de datos:
+echo - Host: %DB_HOST%
+echo - Puerto: %DB_PORT%
+echo - Base de datos: %DB_NAME%
+echo - Usuario: %DB_USER%
+echo - Contraseña: %DB_PASS%
+echo.
 
 set /p CUSTOM_DB="¿Desea personalizar la configuración de la base de datos? (s/n): "
 if /i "%CUSTOM_DB%"=="s" (
@@ -150,6 +158,36 @@ if /i "%CUSTOM_DB%"=="s" (
     set /p DB_USER="Usuario de MySQL [%DB_USER%]: "
     set /p DB_PASS="Contraseña de MySQL [%DB_PASS%]: "
 )
+
+:: Crear archivo .env sin espacios adicionales
+echo Creando archivo .env con la configuración...
+(
+echo DB_URL=jdbc:mysql://%DB_HOST%:%DB_PORT%/%DB_NAME%?allowPublicKeyRetrieval=true^^^&useSSL=false
+echo DB_USER=%DB_USER%
+echo DB_PASS=%DB_PASS%
+echo EMAIL=%EMAIL%
+echo APP_PASS=%APP_PASS%
+) > "%INSTALL_DIR%\.env"
+
+:: Intentar crear la base de datos directamente
+echo.
+echo Intentando crear la base de datos %DB_NAME% si no existe...
+echo CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; > "%TEMP%\create_db.sql"
+mysql -h%DB_HOST% -P%DB_PORT% -u%DB_USER% -p%DB_PASS% < "%TEMP%\create_db.sql" 2>"%TEMP%\mysql_error.log"
+if %errorlevel% neq 0 (
+    echo ADVERTENCIA: No se pudo crear automáticamente la base de datos.
+    echo Motivo:
+    type "%TEMP%\mysql_error.log"
+    echo.
+    echo Es posible que necesite crear manualmente la base de datos '%DB_NAME%'.
+    echo Ejecute el siguiente comando en MySQL:
+    echo CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    echo.
+) else (
+    echo Base de datos %DB_NAME% verificada/creada correctamente.
+)
+del "%TEMP%\create_db.sql" >nul 2>&1
+del "%TEMP%\mysql_error.log" >nul 2>&1
 
 :: Configuración de correo electrónico
 echo.
@@ -171,6 +209,15 @@ set /p USE_EMAIL="¿Desea configurar las notificaciones por correo? (s/n): "
 if /i "%USE_EMAIL%"=="s" (
     set /p EMAIL="Correo electrónico: "
     set /p APP_PASS="Contraseña de aplicación: "
+    
+    :: Actualizar el archivo .env con la información de correo
+    echo Actualizando archivo .env con datos de correo...
+    echo DB_URL=jdbc:mysql://%DB_HOST%:%DB_PORT%/%DB_NAME%?allowPublicKeyRetrieval=true^^^&useSSL=false > "%INSTALL_DIR%\.env"
+    echo DB_USER=%DB_USER% >> "%INSTALL_DIR%\.env"
+    echo DB_PASS=%DB_PASS% >> "%INSTALL_DIR%\.env"
+    echo EMAIL=%EMAIL% >> "%INSTALL_DIR%\.env"
+    echo APP_PASS=%APP_PASS% >> "%INSTALL_DIR%\.env"
+    
     echo.
     echo Se ha configurado el correo electrónico para notificaciones.
 ) else (
@@ -178,19 +225,13 @@ if /i "%USE_EMAIL%"=="s" (
     echo Las notificaciones por correo electrónico no estarán disponibles.
 )
 
-:: Crear archivo .env
-echo DB_URL=jdbc:mysql://%DB_HOST%:%DB_PORT%/%DB_NAME% > "%INSTALL_DIR%\.env"
-echo DB_USER=%DB_USER% >> "%INSTALL_DIR%\.env"
-echo DB_PASS=%DB_PASS% >> "%INSTALL_DIR%\.env"
-echo EMAIL=%EMAIL% >> "%INSTALL_DIR%\.env"
-echo APP_PASS=%APP_PASS% >> "%INSTALL_DIR%\.env"
-
-:: Crear script de ejecución
+:: Crear script de ejecución con parámetros explícitos
 echo.
 echo Creando archivo ejecutar.bat...
 
 echo @echo off > "%INSTALL_DIR%\ejecutar.bat"
 echo setlocal enabledelayedexpansion >> "%INSTALL_DIR%\ejecutar.bat"
+echo chcp 1252 ^>nul >> "%INSTALL_DIR%\ejecutar.bat"
 echo. >> "%INSTALL_DIR%\ejecutar.bat"
 echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
 echo echo ================================================ >> "%INSTALL_DIR%\ejecutar.bat"
@@ -198,6 +239,60 @@ echo echo      INICIANDO DISTRIBUCIONES OMEGA >> "%INSTALL_DIR%\ejecutar.bat"
 echo echo ================================================ >> "%INSTALL_DIR%\ejecutar.bat"
 echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
 echo. >> "%INSTALL_DIR%\ejecutar.bat"
+
+echo REM Cargar las credenciales desde el archivo .env >> "%INSTALL_DIR%\ejecutar.bat"
+echo set DB_URL=jdbc:mysql://localhost:3306/omega >> "%INSTALL_DIR%\ejecutar.bat"
+echo set DB_USER=root >> "%INSTALL_DIR%\ejecutar.bat"
+echo set DB_PASS=root123 >> "%INSTALL_DIR%\ejecutar.bat"
+echo set DB_NAME=omega >> "%INSTALL_DIR%\ejecutar.bat"
+echo set DB_HOST=localhost >> "%INSTALL_DIR%\ejecutar.bat"
+echo set DB_PORT=3306 >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo if exist ".env" ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo     for /F "tokens=1,2 delims==" %%%%a in ^(.env^) do ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo         if "%%%%a"=="DB_USER" set DB_USER=%%%%b >> "%INSTALL_DIR%\ejecutar.bat"
+echo         if "%%%%a"=="DB_PASS" set DB_PASS=%%%%b >> "%INSTALL_DIR%\ejecutar.bat"
+echo         if "%%%%a"=="DB_URL" ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo             set DB_URL=%%%%b >> "%INSTALL_DIR%\ejecutar.bat"
+echo             for /F "tokens=3 delims=:/" %%%%x in ^("%%%%b"^) do set DB_HOST=%%%%x >> "%INSTALL_DIR%\ejecutar.bat"
+echo             for /F "tokens=4 delims=:/" %%%%y in ^("%%%%b"^) do ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo                 for /F "tokens=1 delims=?" %%%%z in ^("%%%%y"^) do set DB_PORT=%%%%z >> "%INSTALL_DIR%\ejecutar.bat"
+echo             ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo             for /F "tokens=5 delims=:/" %%%%w in ^("%%%%b"^) do ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo                 for /F "tokens=1 delims=?" %%%%v in ^("%%%%w"^) do set DB_NAME=%%%%v >> "%INSTALL_DIR%\ejecutar.bat"
+echo             ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo         ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo     ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Usando las siguientes credenciales de base de datos: >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo URL: %%DB_URL%% >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Host: %%DB_HOST%% >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Puerto: %%DB_PORT%% >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Base de datos: %%DB_NAME%% >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Usuario: %%DB_USER%% >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+
+echo REM Crear archivo temporal SQL para crear la base de datos >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo CREATE DATABASE IF NOT EXISTS %%DB_NAME%% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; ^> "%%TEMP%%\create_db.sql" >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo REM Intentar crear la base de datos >> "%INSTALL_DIR%\ejecutar.bat"
+echo echo Intentando crear la base de datos %%DB_NAME%% si no existe... >> "%INSTALL_DIR%\ejecutar.bat"
+echo mysql -h%%DB_HOST%% -P%%DB_PORT%% -u%%DB_USER%% -p%%DB_PASS%% --protocol=tcp ^< "%%TEMP%%\create_db.sql" 2^>nul >> "%INSTALL_DIR%\ejecutar.bat"
+echo if %%errorlevel%% neq 0 ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo ADVERTENCIA: No se pudo crear automáticamente la base de datos. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo Es posible que necesite crear manualmente la base de datos '%%DB_NAME%%'. >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo Ejecute el siguiente comando en MySQL: >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo CREATE DATABASE IF NOT EXISTS %%DB_NAME%% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo ^) else ^( >> "%INSTALL_DIR%\ejecutar.bat"
+echo     echo Base de datos verificada correctamente. >> "%INSTALL_DIR%\ejecutar.bat"
+echo ^) >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+echo REM Eliminar el archivo temporal >> "%INSTALL_DIR%\ejecutar.bat"
+echo del "%%TEMP%%\create_db.sql" ^>nul 2^>^&1 >> "%INSTALL_DIR%\ejecutar.bat"
+echo. >> "%INSTALL_DIR%\ejecutar.bat"
+
 echo REM Verificar que existe el JAR en la ubicación actual >> "%INSTALL_DIR%\ejecutar.bat"
 echo if not exist "app-pos-0.0.1-SNAPSHOT.jar" ^( >> "%INSTALL_DIR%\ejecutar.bat"
 echo     echo ERROR: No se encuentra el archivo JAR en la carpeta actual. >> "%INSTALL_DIR%\ejecutar.bat"
@@ -211,8 +306,9 @@ echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
 echo echo Iniciando aplicación... >> "%INSTALL_DIR%\ejecutar.bat"
 echo echo. >> "%INSTALL_DIR%\ejecutar.bat"
 echo. >> "%INSTALL_DIR%\ejecutar.bat"
-echo REM Ejecutar la aplicación directamente con Spring Boot >> "%INSTALL_DIR%\ejecutar.bat"
-echo java -jar app-pos-0.0.1-SNAPSHOT.jar >> "%INSTALL_DIR%\ejecutar.bat"
+
+echo REM Ejecutar la aplicación con parámetros explícitos >> "%INSTALL_DIR%\ejecutar.bat"
+echo java -jar app-pos-0.0.1-SNAPSHOT.jar --spring.datasource.url="%%DB_URL%%" --spring.datasource.username="%%DB_USER%%" --spring.datasource.password="%%DB_PASS%%" >> "%INSTALL_DIR%\ejecutar.bat"
 echo. >> "%INSTALL_DIR%\ejecutar.bat"
 echo if %%errorlevel%% neq 0 ^( >> "%INSTALL_DIR%\ejecutar.bat"
 echo     echo. >> "%INSTALL_DIR%\ejecutar.bat"
@@ -302,6 +398,8 @@ echo.
 echo Base de datos configurada:
 echo - Host: %DB_HOST%:%DB_PORT%
 echo - Base de datos: %DB_NAME%
+echo - Usuario: %DB_USER%
+echo - Contraseña: %DB_PASS%
 echo.
 if not "%EMAIL%"=="" (
     echo Correo electrónico configurado: %EMAIL%

@@ -209,7 +209,7 @@ public class DatabaseInitializer {
         }
     }
 
-        /**
+    /**
      * Crea la base de datos si no existe
      */
     public static void ensureDatabaseExists() {
@@ -220,25 +220,41 @@ public class DatabaseInitializer {
         String password = null;
         
         try {
-            // Obtener las credenciales y nombres desde el archivo .env o variables de entorno
-            dbName = System.getenv("DB_NAME");
-            if (dbName == null) dbName = "omega"; // Valor por defecto
+            // Usar DBUtil para obtener las credenciales (limpias)
+            String baseUrl = DBUtil.getDBUrl();  // Usa el método que limpia
+            user = DBUtil.getDBUser();           // Usa el método que limpia
+            password = DBUtil.getDBPassword();   // Usa el método que limpia
             
-            // Construir URL sin el nombre de la base de datos
-            String baseUrl = System.getenv("DB_URL");
+            // Depuración para ver si hay espacios
+            System.out.println("DEBUG - Credenciales para crear base de datos:");
+            System.out.println("URL: [" + baseUrl + "]");
+            System.out.println("Usuario: [" + user + "]");
+            
+            // Extraer nombre de la base de datos
+            dbName = "omega"; // Valor por defecto
             if (baseUrl != null && baseUrl.contains("/")) {
+                String tempUrl = baseUrl;
+                
+                // Quitar parámetros adicionales
+                if (tempUrl.contains("?")) {
+                    tempUrl = tempUrl.substring(0, tempUrl.indexOf("?"));
+                }
+                
+                // Extraer el nombre de la base de datos
+                if (tempUrl.lastIndexOf("/") != tempUrl.length() - 1) {
+                    dbName = tempUrl.substring(tempUrl.lastIndexOf("/") + 1);
+                }
+                
+                // Obtener URL base (sin nombre de base de datos)
                 url = baseUrl.substring(0, baseUrl.lastIndexOf("/"));
             } else {
                 url = "jdbc:mysql://localhost:3306";
             }
             
-            user = System.getenv("DB_USER");
-            if (user == null) user = "root"; // Valor por defecto
-            
-            password = System.getenv("DB_PASS");
-            if (password == null) password = "root"; // Valor por defecto
-            
-            System.out.println("Intentando conectar a MySQL para verificar/crear la base de datos: " + dbName);
+            System.out.println("DEBUG - Credenciales para crear base de datos:");
+            System.out.println("URL: " + url);
+            System.out.println("Usuario: " + user);
+            System.out.println("DB Name: " + dbName);
             
             // Conectar al servidor MySQL sin especificar una base de datos
             conn = DriverManager.getConnection(url, user, password);
@@ -264,9 +280,6 @@ public class DatabaseInitializer {
         }
     }
 
-
-
-    
     /**
      * Verifica si una tabla específica existe en la base de datos
      * @param tableName Nombre de la tabla a verificar

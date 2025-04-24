@@ -16,10 +16,15 @@ public class DBUtil {
                                            .ignoreIfMissing()
                                            .load();
     
-    // Variables para la conexión a la BD
-    private static final String URL = dotenv.get("DB_URL");
-    private static final String USER = dotenv.get("DB_USER");
-    private static final String PASSWORD = dotenv.get("DB_PASS");
+    // Método para limpiar los valores de espacios
+    private static String cleanValue(String value) {
+        return value != null ? value.trim() : null;
+    }
+    
+    // Variables para la conexión a la BD - Con limpieza de espacios
+    public static final String URL = cleanValue(dotenv.get("DB_URL"));
+    public static final String USER = cleanValue(dotenv.get("DB_USER"));
+    public static final String PASSWORD = cleanValue(dotenv.get("DB_PASS"));
     
     // Driver de MySQL
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
@@ -34,22 +39,43 @@ public class DBUtil {
         }
     }
     
+    // Métodos adicionales para el DatabaseInitializer
+    public static String getDBUrl() {
+        return cleanValue(URL);
+    }
+    
+    public static String getDBUser() {
+        return cleanValue(USER);
+    }
+    
+    public static String getDBPassword() {
+        return cleanValue(PASSWORD);
+    }
+    
     /**
      * Obtiene una conexión a la base de datos
      * @return Conexión a la BD
      * @throws SQLException Si ocurre un error al conectar
      */
     public static Connection getConnection() throws SQLException {
-        // Añadir parámetro allowPublicKeyRetrieval=true si no está incluido en la URL
-        // Nota: Comprobamos si ya contiene el parámetro para no duplicarlo
-        String urlWithParams = URL;
-        if (!URL.contains("allowPublicKeyRetrieval=")) {
-            urlWithParams = URL.contains("?") 
-                ? URL + "&allowPublicKeyRetrieval=true" 
-                : URL + "?allowPublicKeyRetrieval=true";
+        // Limpiar explícitamente los valores para asegurar que no haya espacios
+        String cleanUrl = cleanValue(URL);
+        String cleanUser = cleanValue(USER);
+        String cleanPassword = cleanValue(PASSWORD);
+        
+        // Imprimir depuración con corchetes para ver espacios
+        System.out.println("DEBUG - Conexión a base de datos:");
+        System.out.println("URL: [" + cleanUrl + "]");
+        System.out.println("Usuario: [" + cleanUser + "]");
+        
+        // Añadir parámetro allowPublicKeyRetrieval=true si no está incluido
+        if (cleanUrl != null && !cleanUrl.contains("allowPublicKeyRetrieval=")) {
+            cleanUrl = cleanUrl.contains("?") 
+                ? cleanUrl + "&allowPublicKeyRetrieval=true" 
+                : cleanUrl + "?allowPublicKeyRetrieval=true";
         }
         
-        return DriverManager.getConnection(urlWithParams, USER, PASSWORD);
+        return DriverManager.getConnection(cleanUrl, cleanUser, cleanPassword);
     }
 
     public static void beginTransaction(Connection conn) throws SQLException {
