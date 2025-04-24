@@ -131,6 +131,9 @@ public class CotizacionController {
         // Configurar búsqueda de productos
         configurarBusquedaProductos();
         
+        // Configurar ScrollPanes para pantallas pequeñas
+        configurarScrollPanes();
+        
         // Cargar productos iniciales
         cargarProductos();
         
@@ -233,6 +236,67 @@ public class CotizacionController {
                 }
             }
         });
+    }
+
+    /**
+     * Configura los ScrollPanes para un mejor rendimiento en pantallas pequeñas
+     */
+    private void configurarScrollPanes() {
+        // Encontrar todos los ScrollPane en la escena
+        javafx.application.Platform.runLater(() -> {
+            try {
+                // Acceder al ScrollPane principal (el contenedor raíz del FXML)
+                ScrollPane scrollPanePrincipal = (ScrollPane) txtVendedor.getScene().getRoot();
+                if (scrollPanePrincipal != null) {
+                    // Configurar el scroll principal para adaptar contenido
+                    scrollPanePrincipal.setFitToWidth(true);
+                    scrollPanePrincipal.setPannable(true); // Permitir arrastrar con el ratón
+                    
+                    // Buscar recursivamente todos los ScrollPane en la escena
+                    buscarYConfigurarScrollPanes(scrollPanePrincipal);
+                }
+            } catch (Exception e) {
+                System.err.println("Error al configurar ScrollPanes: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    /**
+     * Busca recursivamente todos los ScrollPane en un contenedor y los configura
+     * @param parent El contenedor padre donde buscar
+     */
+    private void buscarYConfigurarScrollPanes(javafx.scene.Parent parent) {
+        // Procesar todos los nodos hijos
+        for (javafx.scene.Node node : parent.getChildrenUnmodifiable()) {
+            // Si es un ScrollPane, configurarlo
+            if (node instanceof ScrollPane) {
+                ScrollPane scrollPane = (ScrollPane) node;
+                scrollPane.setFitToWidth(true);
+        
+                // Configurar velocidad de desplazamiento para mejor experiencia
+                scrollPane.getContent().setOnScroll(event -> {
+                    double deltaY = event.getDeltaY() * 3; // Aumentar la velocidad de scroll
+                    double width = scrollPane.getContent().getBoundsInLocal().getWidth();
+                    double vvalue = scrollPane.getVvalue();
+                    scrollPane.setVvalue(vvalue - deltaY / width);
+                });
+        
+                // Si es la tabla de productos o detalle de cotización, ajustar altura mínima
+                if (scrollPane.getContent() instanceof TableView) {
+                    TableView<?> tableView = (TableView<?>) scrollPane.getContent();
+                    // Asegurar que la tabla sea visible incluso con pocos elementos
+                    if (tableView.getItems().size() < 5) {
+                        tableView.setMinHeight(150);
+                    }
+                }
+            }
+        
+            // Buscar ScrollPanes en los hijos de este nodo (recursivamente)
+            if (node instanceof javafx.scene.Parent) {
+                buscarYConfigurarScrollPanes((javafx.scene.Parent) node);
+            }
+        }   
     }
     
     /**

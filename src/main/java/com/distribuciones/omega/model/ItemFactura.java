@@ -64,4 +64,8 @@ public class ItemFactura {
     public void calcularSubtotal() {
         this.subtotal = this.cantidad * this.precioUnitario;
     }
+
+    public String getNombre() {
+        return producto != null ? producto.getDescripcion() : null;
+    }
 }

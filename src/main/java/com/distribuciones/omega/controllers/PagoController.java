@@ -11,6 +11,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.scene.layout.BorderPane;
 
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
@@ -78,10 +79,84 @@ public class PagoController {
                 lblCambio.setText("Cambio: " + currencyFormat.format(0));
             }
         });
+
+        // Configurar ScrollPane para pantallas pequeñas
+        configurarScrollPane();
         
         // Botones inicialmente deshabilitados hasta que se cargue una factura
         btnProcesarPago.setDisable(true);
         btnImprimir.setDisable(true);
+    }
+    
+    /**
+     * Configura el ScrollPane principal y sus comportamientos para pantallas pequeñas
+     */
+    private void configurarScrollPane() {
+        javafx.application.Platform.runLater(() -> {
+            try {
+                // Buscar el ScrollPane en la jerarquía
+                ScrollPane scrollPane = buscarScrollPaneEnJerarquia(lblNumeroFactura);
+                if (scrollPane != null) {
+                    // Configurar propiedades del ScrollPane
+                    scrollPane.setFitToWidth(true);
+                    scrollPane.setPannable(true); // Permite arrastrar el contenido con el mouse
+                    
+                    // Mejorar velocidad de desplazamiento
+                    scrollPane.getContent().setOnScroll(event -> {
+                        double deltaY = event.getDeltaY() * 2.5;
+                        double height = scrollPane.getContent().getBoundsInLocal().getHeight();
+                        double vvalue = scrollPane.getVvalue();
+                        scrollPane.setVvalue(vvalue - deltaY / height);
+                        event.consume();
+                    });
+                    
+                    // Ajustar la altura del TextArea para que sea visible
+                    if (txtResumenCompra != null) {
+                        txtResumenCompra.setPrefRowCount(5);
+                        // Asegurar que el contenido sea visible
+                        if (factura != null && factura.getItems() != null) {
+                            int numItems = factura.getItems().size();
+                            txtResumenCompra.setPrefRowCount(Math.max(5, numItems));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error al configurar ScrollPane: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    /**
+     * Busca el ScrollPane en la jerarquía de nodos
+     * @param nodo Un nodo hijo contenido en la jerarquía
+     * @return El ScrollPane encontrado o null si no se encuentra
+     */
+    private ScrollPane buscarScrollPaneEnJerarquia(javafx.scene.Node nodo) {
+        while (nodo != null) {
+            if (nodo instanceof ScrollPane) {
+                return (ScrollPane) nodo;
+            }
+            
+            if (nodo.getParent() == null) {
+                // Si es el nodo raíz, buscar en la escena
+                if (nodo.getScene() != null && nodo.getScene().getRoot() instanceof ScrollPane) {
+                    return (ScrollPane) nodo.getScene().getRoot();
+                }
+                
+                if (nodo.getScene() != null && nodo.getScene().getRoot() instanceof BorderPane) {
+                    // Para BorderPane, el ScrollPane suele estar en el centro
+                    BorderPane borderPane = (BorderPane) nodo.getScene().getRoot();
+                    if (borderPane.getCenter() instanceof ScrollPane) {
+                        return (ScrollPane) borderPane.getCenter();
+                    }
+                }
+                break;
+            }
+            
+            nodo = nodo.getParent();
+        }
+        return null;
     }
     
     /**
@@ -157,7 +232,7 @@ public class PagoController {
             for (ItemFactura item : factura.getItems()) {
                 resumen.append(item.getCantidad())
                     .append(" x ")
-                    .append(item.getProducto().getDescripcion())
+                    .append(item.getProducto().getNombre()) // Usar getNombre() en lugar de getDescripcion()
                     .append(" - ")
                     .append(currencyFormat.format(item.getSubtotal()))
                     .append("\n");

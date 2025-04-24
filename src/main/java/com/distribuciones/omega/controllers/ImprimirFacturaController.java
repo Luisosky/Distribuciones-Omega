@@ -220,6 +220,7 @@ public class ImprimirFacturaController {
         html.append("table.items { width: 100%; border-collapse: collapse; margin: 15px 0; }");
         html.append("table.items th, table.items td { border: 1px solid #ddd; padding: 5px; text-align: left; }");
         html.append("table.items th { background-color: #f5f5f5; }");
+        html.append(".product-name { font-weight: normal; }"); // Estilo para el nombre del producto
         html.append(".totals { width: 100%; }");
         html.append(".totals td { padding: 3px 5px; }");
         html.append(".total-label { text-align: right; font-weight: bold; }");
@@ -278,7 +279,27 @@ public class ImprimirFacturaController {
             for (ItemFactura item : factura.getItems()) {
                 html.append("<tr>");
                 html.append("<td>").append(item.getCantidad()).append("</td>");
-                html.append("<td>").append(item.getProducto() != null ? item.getProducto().getDescripcion() : "Producto no disponible").append("</td>");
+                
+                // MODIFICADO: Mostrar el nombre del producto en lugar del ID
+                String nombreProducto = "Producto no disponible";
+                if (item.getProducto() != null) {
+                    // Usar el nombre del producto (que ahora es un método que retorna la descripción)
+                    if (item.getProducto().getNombre() != null && !item.getProducto().getNombre().isEmpty()) {
+                        nombreProducto = item.getProducto().getNombre();
+                    }
+                    // Como alternativa, usar el código si el nombre/descripción no está disponible
+                    else if (item.getProducto().getCodigo() != null && !item.getProducto().getCodigo().isEmpty()) {
+                        nombreProducto = item.getProducto().getCodigo();
+                    }
+                    
+                    // No mostrar el ID del producto como referencia, solo el código si está disponible
+                    if (item.getProducto().getCodigo() != null && !item.getProducto().getCodigo().isEmpty() 
+                            && !nombreProducto.contains(item.getProducto().getCodigo())) {
+                        nombreProducto += " (Ref: " + item.getProducto().getCodigo() + ")";
+                    }
+                }
+                html.append("<td class='product-name'>").append(nombreProducto).append("</td>");
+                
                 html.append("<td>").append(formatCurrency(item.getPrecioUnitario())).append("</td>");
                 html.append("<td>").append(formatCurrency(item.getSubtotal())).append("</td>");
                 html.append("</tr>");

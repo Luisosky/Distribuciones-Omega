@@ -39,6 +39,15 @@ public class ProductoInventario {
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     
+    /**
+     * Obtiene el nombre del producto (utilizando la descripción como nombre)
+     * @return El nombre del producto
+     */
+    public String getNombre() { 
+        // Usar descripción como nombre del producto
+        return descripcion; 
+    }
+    
     public double getPrecio() { return precio; }
     public void setPrecio(double precio) { this.precio = precio; }
     
